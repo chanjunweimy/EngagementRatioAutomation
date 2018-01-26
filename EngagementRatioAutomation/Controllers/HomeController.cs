@@ -10,8 +10,6 @@ namespace EngagementRatioAutomation.Controllers
     /// <summary>
     /// Default controller that redirects browser to swagger url.
     /// </summary>
-    [Produces("application/json")]
-    [Route("api/Home")]
     public class HomeController : Controller
     {
         /// <summary>
