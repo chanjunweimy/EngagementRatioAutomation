@@ -18,15 +18,30 @@ namespace EngagementRatioAutomation
             BuildWebHost(args).Run();
         }
 
-        public static IWebHost BuildWebHost(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+        public static IWebHost BuildWebHost(string[] args)
+        {
+            var configuration = new ConfigurationBuilder()
+                                .AddCommandLine(args)
+                                .Build();
+
+            if (args.Length == 0)
+            {
+                configuration = new ConfigurationBuilder()
+                                .SetBasePath(Directory.GetCurrentDirectory())
+                                .AddJsonFile("hosting.json", true)
+                                .Build();
+            }
+
+            return WebHost.CreateDefaultBuilder(args)
                 .UseHttpSys(options =>
                 {
                     options.Authentication.Schemes =
                         AuthenticationSchemes.NTLM | AuthenticationSchemes.Negotiate;
                     options.Authentication.AllowAnonymous = false;
                 })
+                .UseConfiguration(configuration)
                 .UseStartup<Startup>()
                 .Build();
+        }
     }
 }
