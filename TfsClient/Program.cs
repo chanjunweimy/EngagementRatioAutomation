@@ -12,6 +12,7 @@ namespace TfsClient
         static void Main(string[] args)
         {
             var user = WindowsIdentity.GetCurrent();
+            GetYearStartAndEndDate(DateTime.Now, out var startDate, out var endDate);
 
             var collectionUri = "http://aws-tfs:8080/tfs/NtCloud";
             var teamProjectName = "NtCloud";
@@ -25,7 +26,7 @@ namespace TfsClient
                         "From WorkItemLinks " +
                         "Where (Source.[System.TeamProject] = '" + teamProjectName + "' and Source.[System.State] <> 'Removed' and Source.[System.WorkItemType] <> 'Task') " +
                         "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') " +
-                        "And (Target.[System.TeamProject] = '" + teamProjectName + "' and Target.[System.State] = 'Done' and Target.[Microsoft.VSTS.Common.ClosedDate] <= '2018-12-31T00:00:00.0000000' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '2018-01-01T00:00:00.0000000' and Target.[System.AssignedTo] = '" + user.Name + "' and Target.[System.WorkItemType] = 'Task') " +
+                        "And (Target.[System.TeamProject] = '" + teamProjectName + "' and Target.[System.State] = 'Done' and Target.[Microsoft.VSTS.Common.ClosedDate] <= '" + endDate.ToLongDateString() + "' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '" + startDate.ToLongDateString() + "' and Target.[System.AssignedTo] = '" + user.Name + "' and Target.[System.WorkItemType] = 'Task') " +
                         "Order By [System.Id] mode (Recursive, ReturnMatchingChildren) "
             };
 
@@ -33,6 +34,12 @@ namespace TfsClient
             WorkItemTrackingHttpClient witClient = connection.GetClient<WorkItemTrackingHttpClient>();
             WorkItemQueryResult workItemQueryResult = witClient.QueryByWiqlAsync(wiql).Result;
 
+        }
+
+        public static void GetYearStartAndEndDate(DateTime d, out DateTime startDate, out DateTime endDate)
+        {
+            startDate = new DateTime(d.Year, 1, 1);
+            endDate = new DateTime(d.Year, 12, 31);
         }
     }
 }
