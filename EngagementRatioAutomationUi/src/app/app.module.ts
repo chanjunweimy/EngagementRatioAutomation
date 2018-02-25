@@ -24,7 +24,6 @@ import { NtApiService } from './api/nt-api.service';
     HttpModule
   ],
   providers: [
-    HttpClientModule,
     NtApiService
   ],
   bootstrap: [AppComponent]
