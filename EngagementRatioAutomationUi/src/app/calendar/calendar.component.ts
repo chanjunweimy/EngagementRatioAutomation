@@ -46,7 +46,7 @@ const colors: any = {
 export class CalendarComponent {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
-    view: string = 'month';
+    view: string = 'week';
 
     viewDate: Date = new Date();
 
