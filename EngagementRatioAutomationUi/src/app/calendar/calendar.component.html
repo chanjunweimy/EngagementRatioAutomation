@@ -101,12 +101,12 @@
                 <input type="color" [(ngModel)]="event.color.secondary" (change)="refresh.next()">
             </td>
             <td>
-                <mwl-demo-utils-date-time-picker [(ngModel)]="event.start" (ngModelChange)="refresh.next()" placeholder="Not set">
-                </mwl-demo-utils-date-time-picker>
+                <calendar-util-date-time-picker [(ngModel)]="event.start" (ngModelChange)="refresh.next()" placeholder="Not set">
+                </calendar-util-date-time-picker>
             </td>
             <td>
-                <mwl-demo-utils-date-time-picker [(ngModel)]="event.end" (ngModelChange)="refresh.next()" placeholder="Not set">
-                </mwl-demo-utils-date-time-picker>
+                <calendar-util-date-time-picker [(ngModel)]="event.end" (ngModelChange)="refresh.next()" placeholder="Not set">
+                </calendar-util-date-time-picker>
             </td>
             <td>
                 <button class="btn btn-danger" (click)="events.splice(index, 1); refresh.next()">

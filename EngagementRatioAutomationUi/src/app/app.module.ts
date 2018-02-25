@@ -8,7 +8,8 @@ import { CalendarModule } from 'angular-calendar';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
 import { AppComponent } from './app.component';
-import { CalendarComponent } from './calendar/calendar.component';
+import { CalendarUtilModule } from './calendar-util/calendar-util.module';
+import { NtCalendarModule } from './calendar/calendar.module';
 import { NtApiService } from './api/nt-api.service';
 
 
@@ -21,7 +22,9 @@ import { NtApiService } from './api/nt-api.service';
     NgbModule.forRoot(),
     CalendarModule.forRoot(),
     HttpClientModule, 
-    HttpModule
+    HttpModule,
+    NtCalendarModule,
+    CalendarUtilModule
   ],
   providers: [
     NtApiService
