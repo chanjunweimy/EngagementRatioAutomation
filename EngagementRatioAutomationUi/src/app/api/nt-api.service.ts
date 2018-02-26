@@ -10,36 +10,36 @@ export class NtApiService {
 
   getDummyWorkItem(): Observable<Array<NtWorkItem>> {
     return this._http.get('/api/TfsTask/dummy-work-item', ).map(x => {
-      const ntWorkItem: Array<NtWorkItem> = x.json() || {};
+      const ntWorkItem: Array<NtWorkItem> = x.json() || [];
       return ntWorkItem;
     });
   }
 
   getAllWorkItem(): Observable<Array<NtWorkItem>> {
     return this._http.get('/api/TfsTask/all-work-item', ).map(x => {
-      const ntWorkItem: Array<NtWorkItem> = x.json() || {};
+      const ntWorkItem: Array<NtWorkItem> = x.json() || [];
       return ntWorkItem;
     });
   }
 
   getWorkItem(start: string, end: string): Observable<Array<NtWorkItem>> {
     return this._http.get('/api/TfsTask/work-item', {params: {start: start, end: end}}).map(x => {
-      const ntWorkItem: Array<NtWorkItem> = x.json() || {};
+      const ntWorkItem: Array<NtWorkItem> = x.json() || [];
       return ntWorkItem;
     });
   }
 }
 
 export class NtWorkItem {
-  Id: number;
-  WorkItemType: string;
-  Activity: string;
-  Title: string;
-  AssignedTo: string;
-  State: string;
-  IterationPath: string;
-  ClosedDate: string;
-  AreaPath: string;
-  Duration: number;
-  Product: string;
+  id: number;
+  workItemType: string;
+  activity: string;
+  title: string;
+  assignedTo: string;
+  state: string;
+  iterationPath: string;
+  closedDate: string;
+  areaPath: string;
+  duration: number;
+  product: string;
 }

@@ -22,7 +22,7 @@ import {
     CalendarEventAction,
     CalendarEventTimesChangedEvent
 } from 'angular-calendar';
-import { NtApiService } from '../api/nt-api.service';
+import { NtApiService, NtWorkItem } from '../api/nt-api.service';
 
 declare var $: any;
 declare var jQuery: any;
@@ -133,16 +133,7 @@ export class CalendarComponent implements OnInit {
         const today = new Date();
         const mon = this.getDay(today, this.DAY_CONSTS.MONDAY).toDateString();
         const sun = this.getDay(today, this.DAY_CONSTS.SUNDAY).toDateString();
-        this._apiService.getWorkItem(mon, sun).subscribe(x => {
-            console.log(x);
-        });
-    }
-
-    getDay(date: Date, desiredDay: number): Date {
-        date = new Date(date);
-        const day = date.getDay();
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        return new Date(date.setDate(diff + desiredDay));
+        this.getWorkItem(mon, sun);
     }
 
     dayClicked({ date, events }: { date: Date; events: CalendarEvent[] }): void {
@@ -159,9 +150,12 @@ export class CalendarComponent implements OnInit {
         }
     }
 
-    viewDateChange(e: Event): void {
+    viewDateChange(date: Date): void {
         this.activeDayIsOpen = false;
-        console.log(e);
+
+        const mon = date.toDateString();
+        const sun = this.getDay(date, this.DAY_CONSTS.SUNDAY).toDateString();
+        this.getWorkItem(mon, sun);
     }
 
     eventTimesChanged({
@@ -198,4 +192,38 @@ export class CalendarComponent implements OnInit {
         */
         this.refresh.next();
     }
+
+    // ============================================= HELPER START =========================================================
+
+    getDay(date: Date, desiredDay: number): Date {
+        date = new Date(date);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        return new Date(date.setDate(diff + desiredDay));
+    }
+
+    getWorkItem(mon: string, sun: string): void {
+        this._apiService.getWorkItem(mon, sun).subscribe(workitems => {
+            if (workitems.length === 0) {
+                return;
+            }
+            for (const workitem of workitems) {
+                this.events.push(
+                    {
+                        title: workitem.id + ' ' + workitem.title,
+                        start: new Date(workitem.closedDate),
+                        end: new Date(workitem.closedDate),
+                        color: colors.red,
+                        draggable: false,
+                        resizable: {
+                            beforeStart: true,
+                            afterEnd: true
+                        }
+                    }
+                );
+            }
+            this.refresh.next();
+        });
+    }
+    // ============================================= HELPER END ===========================================================
 }
