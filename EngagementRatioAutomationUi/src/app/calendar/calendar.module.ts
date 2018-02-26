@@ -6,6 +6,7 @@ import { NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CalendarUtilModule } from '../calendar-util/calendar-util.module';
 import { CalendarComponent } from './calendar.component';
+import { NtApiService } from '../api/nt-api.service';
 
 @NgModule({
   imports: [
@@ -17,6 +18,9 @@ import { CalendarComponent } from './calendar.component';
     CalendarUtilModule
   ],
   declarations: [CalendarComponent],
-  exports: [CalendarComponent]
+  exports: [CalendarComponent],
+  providers: [
+    NtApiService
+  ]
 })
 export class NtCalendarModule {}

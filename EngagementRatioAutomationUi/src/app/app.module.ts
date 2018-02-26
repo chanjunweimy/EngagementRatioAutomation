@@ -10,8 +10,6 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { AppComponent } from './app.component';
 import { CalendarUtilModule } from './calendar-util/calendar-util.module';
 import { NtCalendarModule } from './calendar/calendar.module';
-import { NtApiService } from './api/nt-api.service';
-
 
 @NgModule({
   declarations: [
@@ -21,13 +19,10 @@ import { NtApiService } from './api/nt-api.service';
     BrowserModule,
     NgbModule.forRoot(),
     CalendarModule.forRoot(),
-    HttpClientModule, 
+    HttpClientModule,
     HttpModule,
     NtCalendarModule,
     CalendarUtilModule
-  ],
-  providers: [
-    NtApiService
   ],
   bootstrap: [AppComponent]
 })

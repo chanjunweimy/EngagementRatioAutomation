@@ -1,20 +1,14 @@
-import { Component, OnInit } from '@angular/core';
-
-import { NtApiService } from './api/nt-api.service';
+import { Component } from '@angular/core';
+import * as $ from 'jquery';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
   title = 'Engagement Ratio UI';
 
-  constructor (private _ntApiService: NtApiService) {
-
-  }
-
-  ngOnInit() {
-    this._ntApiService.getDummyWorkItem().subscribe(x => {console.log(x)});  
+  constructor () {
   }
 }

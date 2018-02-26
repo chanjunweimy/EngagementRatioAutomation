@@ -2,7 +2,8 @@ import {
     Component,
     ChangeDetectionStrategy,
     ViewChild,
-    TemplateRef
+    TemplateRef,
+    OnInit
 } from '@angular/core';
 import {
     startOfDay,
@@ -21,6 +22,10 @@ import {
     CalendarEventAction,
     CalendarEventTimesChangedEvent
 } from 'angular-calendar';
+import { NtApiService } from '../api/nt-api.service';
+
+declare var $: any;
+declare var jQuery: any;
 
 const colors: any = {
     red: {
@@ -38,15 +43,15 @@ const colors: any = {
 };
 
 @Component({
-    selector: 'calendar-component',
+    selector: 'app-calendar-component',
     changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrls: ['calendar.component.less'],
     templateUrl: 'calendar.component.html'
 })
-export class CalendarComponent {
+export class CalendarComponent implements OnInit {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
-    view: string = 'week';
+    view = 'week';
 
     viewDate: Date = new Date();
 
@@ -107,9 +112,16 @@ export class CalendarComponent {
         }
     ];
 
-    activeDayIsOpen: boolean = true;
+    activeDayIsOpen = true;
 
-    constructor(private modal: NgbModal) { }
+    constructor(private _modal: NgbModal,
+                private _apiService: NtApiService) {}
+
+    ngOnInit() {
+        this._apiService.getDummyWorkItem().subscribe(x => {
+            console.log(x);
+        });
+    }
 
     dayClicked({ date, events }: { date: Date; events: CalendarEvent[] }): void {
         if (isSameMonth(date, this.viewDate)) {
@@ -138,7 +150,7 @@ export class CalendarComponent {
 
     handleEvent(action: string, event: CalendarEvent): void {
         this.modalData = { event, action };
-        this.modal.open(this.modalContent, { size: 'lg' });
+        this._modal.open(this.modalContent, { size: 'lg' });
     }
 
     addEvent(): void {

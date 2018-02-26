@@ -8,13 +8,12 @@ export class NtApiService {
 
   constructor(private _http: Http) { }
 
-  getDummyWorkItem() : Observable<Array<NtWorkItem>> {
-    return this._http.get('/api/TfsTask/dummy-work-item',).map(x => {
-      let ntWorkItem: Array<NtWorkItem> = x.json() || {};
+  getDummyWorkItem(): Observable<Array<NtWorkItem>> {
+    return this._http.get('/api/TfsTask/dummy-work-item', ).map(x => {
+      const ntWorkItem: Array<NtWorkItem> = x.json() || {};
       return ntWorkItem;
     });
   }
-
 }
 
 export class NtWorkItem {
