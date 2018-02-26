@@ -79,6 +79,7 @@ export class CalendarComponent implements OnInit {
     refresh: Subject<any> = new Subject();
 
     events: CalendarEvent[] = [
+        /*
         {
             start: subDays(startOfDay(new Date()), 1),
             end: addDays(new Date(), 1),
@@ -110,7 +111,18 @@ export class CalendarComponent implements OnInit {
             },
             draggable: true
         }
+        */
     ];
+
+    DAY_CONSTS = {
+        MONDAY: 0,
+        TUESDAY: 1,
+        WEDNESDAY: 2,
+        THURSDAY: 3,
+        FRIDAY: 4,
+        SATURDAY: 5,
+        SUNDAY: 6
+    };
 
     activeDayIsOpen = true;
 
@@ -118,9 +130,19 @@ export class CalendarComponent implements OnInit {
                 private _apiService: NtApiService) {}
 
     ngOnInit() {
-        this._apiService.getDummyWorkItem().subscribe(x => {
+        const today = new Date();
+        const mon = this.getDay(today, this.DAY_CONSTS.MONDAY).toDateString();
+        const sun = this.getDay(today, this.DAY_CONSTS.SUNDAY).toDateString();
+        this._apiService.getWorkItem(mon, sun).subscribe(x => {
             console.log(x);
         });
+    }
+
+    getDay(date: Date, desiredDay: number): Date {
+        date = new Date(date);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        return new Date(date.setDate(diff + desiredDay));
     }
 
     dayClicked({ date, events }: { date: Date; events: CalendarEvent[] }): void {
@@ -135,6 +157,11 @@ export class CalendarComponent implements OnInit {
                 this.viewDate = date;
             }
         }
+    }
+
+    viewDateChange(e: Event): void {
+        this.activeDayIsOpen = false;
+        console.log(e);
     }
 
     eventTimesChanged({
@@ -154,17 +181,21 @@ export class CalendarComponent implements OnInit {
     }
 
     addEvent(): void {
-        this.events.push({
-            title: 'New event',
-            start: startOfDay(new Date()),
-            end: endOfDay(new Date()),
-            color: colors.red,
-            draggable: true,
-            resizable: {
-                beforeStart: true,
-                afterEnd: true
+        /*
+        this.events.push(
+            {
+                title: 'New event',
+                start: startOfDay(new Date()),
+                end: endOfDay(new Date()),
+                color: colors.red,
+                draggable: true,
+                resizable: {
+                    beforeStart: true,
+                    afterEnd: true
+                }
             }
-        });
+        );
+        */
         this.refresh.next();
     }
 }

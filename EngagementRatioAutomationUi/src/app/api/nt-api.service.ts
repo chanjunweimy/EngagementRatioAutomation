@@ -14,6 +14,20 @@ export class NtApiService {
       return ntWorkItem;
     });
   }
+
+  getAllWorkItem(): Observable<Array<NtWorkItem>> {
+    return this._http.get('/api/TfsTask/all-work-item', ).map(x => {
+      const ntWorkItem: Array<NtWorkItem> = x.json() || {};
+      return ntWorkItem;
+    });
+  }
+
+  getWorkItem(start: string, end: string): Observable<Array<NtWorkItem>> {
+    return this._http.get('/api/TfsTask/work-item', {params: {start: start, end: end}}).map(x => {
+      const ntWorkItem: Array<NtWorkItem> = x.json() || {};
+      return ntWorkItem;
+    });
+  }
 }
 
 export class NtWorkItem {
