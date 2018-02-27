@@ -25,29 +25,20 @@ export const DATE_TIME_PICKER_CONTROL_VALUE_ACCESSOR: any = {
 @Component({
   selector: 'calendar-util-date-time-picker',
   template: `
-    <form class="form-inline">
-      <div class="form-group">
-        <div class="input-group">
-          <input
-            readonly
-            class="form-control"
-            [placeholder]="placeholder"
-            name="date"
-            [(ngModel)]="dateStruct"
-            (ngModelChange)="updateDate()"
-            ngbDatepicker
-            #datePicker="ngbDatepicker">
-            <div class="input-group-append" (click)="datePicker.toggle()" >
-              <span class="input-group-text"><i class="fa fa-calendar"></i></span>
-            </div>
+    <div class="input-group px-2">
+      <input
+        readonly
+        class="form-control"
+        [placeholder]="placeholder"
+        name="date"
+        [(ngModel)]="dateStruct"
+        (ngModelChange)="updateDate()"
+        ngbDatepicker
+        #datePicker="ngbDatepicker">
+        <div class="input-group-append" (click)="datePicker.toggle()" >
+          <span class="input-group-text"><i class="fa fa-calendar"></i></span>
         </div>
-      </div>
-    </form>
-    <ngb-timepicker
-      [(ngModel)]="timeStruct"
-      (ngModelChange)="updateTime()"
-      [meridian]="true">
-    </ngb-timepicker>
+    </div>
   `,
   styles: [
     `
@@ -65,8 +56,6 @@ export class DateTimePickerComponent implements ControlValueAccessor {
 
   dateStruct: NgbDateStruct;
 
-  timeStruct: NgbTimeStruct;
-
   datePicker: any;
 
   private onChangeCallback: (date: Date) => void = () => {};
@@ -79,11 +68,6 @@ export class DateTimePickerComponent implements ControlValueAccessor {
       day: getDate(date),
       month: getMonth(date) + 1,
       year: getYear(date)
-    };
-    this.timeStruct = {
-      second: getSeconds(date),
-      minute: getMinutes(date),
-      hour: getHours(date)
     };
     this.cdr.detectChanges();
   }
@@ -101,18 +85,6 @@ export class DateTimePickerComponent implements ControlValueAccessor {
         this.dateStruct.month - 1
       ),
       this.dateStruct.year
-    );
-    this.writeValue(newDate);
-    this.onChangeCallback(newDate);
-  }
-
-  updateTime(): void {
-    const newDate: Date = setHours(
-      setMinutes(
-        setSeconds(this.date, this.timeStruct.second),
-        this.timeStruct.minute
-      ),
-      this.timeStruct.hour
     );
     this.writeValue(newDate);
     this.onChangeCallback(newDate);

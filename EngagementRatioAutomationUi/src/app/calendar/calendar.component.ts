@@ -16,7 +16,8 @@ import {
     addHours
 } from 'date-fns';
 import { Subject } from 'rxjs/Subject';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbDateStruct } from '@ng-bootstrap/ng-bootstrap';
+
 import {
     CalendarEvent,
     CalendarEventAction,
@@ -61,7 +62,6 @@ export class CalendarComponent implements OnInit {
 
     modalData: {
         title: string
-        workItem: NtWorkItem
     };
 
     workItemDict: {
@@ -128,6 +128,10 @@ export class CalendarComponent implements OnInit {
 
     isTeamMemberSelected: {[id: string]: boolean } = {};
 
+    startDate: Date = new Date();
+
+    endDate: Date = new Date();
+
     DAY_CONSTS = {
         MONDAY: 0,
         TUESDAY: 1,
@@ -177,20 +181,8 @@ export class CalendarComponent implements OnInit {
         this.getViewWorkItem();
     }
 
-    eventTimesChanged({
-    event,
-        newStart,
-        newEnd
-}: CalendarEventTimesChangedEvent): void {
-        event.start = newStart;
-        event.end = newEnd;
-        this.handleEvent('Dropped or resized', event);
-        this.refresh.next();
-    }
-
     handleEvent(action: string, event: CalendarEvent): void {
-        this.modalData = { title: event.title, workItem: this.workItemDict[event.title] };
-        this._modal.open(this.modalContent, { size: 'lg' });
+        window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + this.workItemDict[event.title].id, '_blank');
     }
 
     addEvent(): void {
@@ -210,6 +202,20 @@ export class CalendarComponent implements OnInit {
         );
         */
         this.refresh.next();
+    }
+
+    exportToCsv(): void {
+        this.modalData = { title: 'Exporting...' };
+        const ref = this._modal.open(this.modalContent, { size: 'sm',
+                                                          windowClass: 'transparent-image',
+                                                          backdrop: 'static',
+                                                          keyboard: false });
+        const ntTeamMembers = this.getSelectedNtTeamMembers();
+        this._apiService.getWorkItemsByNtTeamMembers(this.startDate.toDateString(), this.endDate.toDateString(), ntTeamMembers)
+            .subscribe(workItems => {
+
+                ref.close();
+            });
     }
 
     // ============================================= HELPER START =========================================================
@@ -253,15 +259,29 @@ export class CalendarComponent implements OnInit {
         this.getWorkItemByTeamMembers(start, end);
     }
 
-    getWorkItemByTeamMembers(start: string, end: string): void {
+    getSelectedNtTeamMembers(): NtTeamMember[] {
         const ntTeamMembers: NtTeamMember[] = [];
         for (const teamMember of this.teamMembers) {
             if (this.isTeamMemberSelected[teamMember.id]) {
                 ntTeamMembers.push(teamMember);
             }
         }
+        return ntTeamMembers;
+    }
+
+    getWorkItemByTeamMembers(start: string, end: string): void {
+        this.startDate = new Date(start);
+        this.endDate = new Date(end);
+
+        this.modalData = { title: 'Loading...' };
+        const ref = this._modal.open(this.modalContent, { size: 'sm',
+                                                          windowClass: 'transparent-image',
+                                                          backdrop: 'static',
+                                                          keyboard: false });
+        const ntTeamMembers = this.getSelectedNtTeamMembers();
         this._apiService.getWorkItemsByNtTeamMembers(start, end, ntTeamMembers).subscribe(workItems => {
             this.updateEvents(workItems);
+            ref.close();
         });
     }
 
