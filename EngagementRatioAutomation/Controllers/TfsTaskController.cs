@@ -6,6 +6,7 @@ using System.Security.Principal;
 using EngagementRatioAutomation.Controllers.dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.TeamFoundation.Common;
+using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
@@ -79,10 +80,11 @@ namespace EngagementRatioAutomation.Controllers
         {
             var user = (WindowsIdentity)User.Identity;
 
-            var teamProjectName = GetWitClient(out var witClient);
+            var witClient = GetWitClient();
 
             var startDate = DateTime.Parse(start);
             var endDate = DateTime.Parse(end);
+            var teamProjectName = NAME_PROJECT;
 
             var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, user, witClient, out var workItemLinks);
             if (!workItemLinks.Any())
@@ -92,6 +94,34 @@ namespace EngagementRatioAutomation.Controllers
 
             var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult);
             return ntWorkItems;
+        }
+
+        /// <summary>
+        /// Get tfs Tasks by start and end date
+        /// </summary>
+        [HttpGet("team")]
+        public List<NtTeamMember> GetTeamMembers()
+        {
+            var user = (WindowsIdentity)User.Identity;
+            var teamProjectName = NAME_PROJECT;
+            var collectionUri = URL_COLLECTION;
+            // Create instance of VssConnection using Windows credentials (NTLM)
+            var connection = new VssConnection(new Uri(collectionUri), new VssCredentials(new WindowsCredential(true)));
+            // Create instance of WorkItemTrackingHttpClient using VssConnection
+            var projectClient = connection.GetClient<ProjectHttpClient>();
+            var project = projectClient.GetProject("NtCloud").Result;
+            //var team = project.DefaultTeam;
+
+            var teamClient = connection.GetClient<TeamHttpClient>();
+            var teamMembers = teamClient.GetTeamMembersAsync(project.Id.ToString(), project.DefaultTeam.Id.ToString()).Result;
+
+            return teamMembers.Select(teamMember => new NtTeamMember
+                {
+                    Id = teamMember.Id,
+                    UniqueName = teamMember.UniqueName,
+                    DisplayName = teamMember.DisplayName
+                })
+                .ToList();
         }
 
         private static List<NtWorkItem> GetNtWorkItems(WorkItemLink[] workItemLinks, WorkItemTrackingHttpClient witClient,
@@ -221,15 +251,13 @@ namespace EngagementRatioAutomation.Controllers
             return workItemQueryResult;
         }
 
-        private static string GetWitClient(out WorkItemTrackingHttpClient witClient)
+        private static WorkItemTrackingHttpClient GetWitClient()
         {
             var collectionUri = URL_COLLECTION;
-            var teamProjectName = NAME_PROJECT;
             // Create instance of VssConnection using Windows credentials (NTLM)
             var connection = new VssConnection(new Uri(collectionUri), new VssCredentials(new WindowsCredential(true)));
             // Create instance of WorkItemTrackingHttpClient using VssConnection
-            witClient = connection.GetClient<WorkItemTrackingHttpClient>();
-            return teamProjectName;
+            return connection.GetClient<WorkItemTrackingHttpClient>();
         }
 
         private void GetYearStartAndEndDate(DateTime d, out DateTime startDate, out DateTime endDate)
