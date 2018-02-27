@@ -66,14 +66,16 @@ export class CalendarComponent implements OnInit {
             onClick: ({ event }: { event: CalendarEvent }): void => {
                 this.handleEvent('Edited', event);
             }
-        },
-        {
+        }
+        /*
+        , {
             label: '<i class="fa fa-fw fa-times"></i>',
             onClick: ({ event }: { event: CalendarEvent }): void => {
                 this.events = this.events.filter(iEvent => iEvent !== event);
                 this.handleEvent('Deleted', event);
             }
         }
+        */
     ];
 
     refresh: Subject<any> = new Subject();
@@ -131,9 +133,17 @@ export class CalendarComponent implements OnInit {
 
     ngOnInit() {
         const today = new Date();
-        const mon = this.getDay(today, this.DAY_CONSTS.MONDAY).toDateString();
-        const sun = this.getDay(today, this.DAY_CONSTS.SUNDAY).toDateString();
-        this.getWorkItem(mon, sun);
+        this.getWeeklyWorkItem(today);
+    }
+
+    weekInit() {
+        this.view = 'week';
+        this.getWeeklyWorkItem(this.viewDate);
+    }
+
+    monthInit() {
+        this.view = 'month';
+        this.getMontlyWorkItem(this.viewDate);
     }
 
     dayClicked({ date, events }: { date: Date; events: CalendarEvent[] }): void {
@@ -153,9 +163,11 @@ export class CalendarComponent implements OnInit {
     viewDateChange(date: Date): void {
         this.activeDayIsOpen = false;
 
-        const mon = date.toDateString();
-        const sun = this.getDay(date, this.DAY_CONSTS.SUNDAY).toDateString();
-        this.getWorkItem(mon, sun);
+        if (this.view.toLowerCase() === 'month') {
+            this.getMontlyWorkItem(date);
+        } else if (this.view.toLowerCase() === 'week') {
+            this.getWeeklyWorkItem(date);
+        }
     }
 
     eventTimesChanged({
@@ -202,11 +214,36 @@ export class CalendarComponent implements OnInit {
         return new Date(date.setDate(diff + desiredDay));
     }
 
+    getStartOfMonth(date: Date): Date {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        return new Date(year, month, 1);
+    }
+
+    getEndOfMonth(date: Date): Date {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        return new Date(year, month + 1, 0);
+    }
+
+    getWeeklyWorkItem(date: Date): void {
+        const mon = this.getDay(date, this.DAY_CONSTS.MONDAY).toDateString();
+        const sun = this.getDay(date, this.DAY_CONSTS.SUNDAY).toDateString();
+        this.getWorkItem(mon, sun);
+    }
+
+    getMontlyWorkItem(date: Date): void {
+        const start = this.getStartOfMonth(date).toDateString();
+        const end = this.getEndOfMonth(date).toDateString();
+        this.getWorkItem(start, end);
+    }
+
     getWorkItem(mon: string, sun: string): void {
         this._apiService.getWorkItem(mon, sun).subscribe(workitems => {
             if (workitems.length === 0) {
                 return;
             }
+            this.events.length = 0;
             for (const workitem of workitems) {
                 this.events.push(
                     {
