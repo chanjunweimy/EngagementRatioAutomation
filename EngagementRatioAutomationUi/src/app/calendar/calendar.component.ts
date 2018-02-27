@@ -22,7 +22,9 @@ import {
     CalendarEventAction,
     CalendarEventTimesChangedEvent
 } from 'angular-calendar';
-import { NtApiService, NtWorkItem } from '../api/nt-api.service';
+import { forkJoin } from 'rxjs/observable/forkJoin';
+
+import { NtApiService, NtWorkItem, NtTeamMember } from '../api/nt-api.service';
 
 declare var $: any;
 declare var jQuery: any;
@@ -52,6 +54,8 @@ export class CalendarComponent implements OnInit {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
     view = 'month';
+
+    userName = '';
 
     viewDate: Date = new Date();
 
@@ -120,6 +124,10 @@ export class CalendarComponent implements OnInit {
         */
     ];
 
+    teamMembers: NtTeamMember[] = [];
+
+    isTeamMemberSelected: {[id: string]: boolean } = {};
+
     DAY_CONSTS = {
         MONDAY: 0,
         TUESDAY: 1,
@@ -136,8 +144,7 @@ export class CalendarComponent implements OnInit {
                 private _apiService: NtApiService) {}
 
     ngOnInit() {
-        const today = new Date();
-        this.getMontlyWorkItem(today);
+        this.getNtTeamMembers();
     }
 
     weekInit() {
@@ -167,11 +174,7 @@ export class CalendarComponent implements OnInit {
     viewDateChange(date: Date): void {
         this.activeDayIsOpen = false;
 
-        if (this.view.toLowerCase() === 'month') {
-            this.getMontlyWorkItem(date);
-        } else if (this.view.toLowerCase() === 'week') {
-            this.getWeeklyWorkItem(date);
-        }
+        this.getViewWorkItem();
     }
 
     eventTimesChanged({
@@ -230,43 +233,90 @@ export class CalendarComponent implements OnInit {
         return new Date(year, month + 1, 0);
     }
 
+    getViewWorkItem(): void {
+        if (this.view.toLowerCase() === 'month') {
+            this.getMontlyWorkItem(this.viewDate);
+        } else if (this.view.toLowerCase() === 'week') {
+            this.getWeeklyWorkItem(this.viewDate);
+        }
+    }
+
     getWeeklyWorkItem(date: Date): void {
         const mon = this.getDay(date, this.DAY_CONSTS.MONDAY).toDateString();
         const sun = this.getDay(date, this.DAY_CONSTS.SUNDAY).toDateString();
-        this.getWorkItem(mon, sun);
+        this.getWorkItemByTeamMembers(mon, sun);
     }
 
     getMontlyWorkItem(date: Date): void {
         const start = this.getStartOfMonth(date).toDateString();
         const end = this.getEndOfMonth(date).toDateString();
-        this.getWorkItem(start, end);
+        this.getWorkItemByTeamMembers(start, end);
     }
 
-    getWorkItem(mon: string, sun: string): void {
-        this._apiService.getWorkItem(mon, sun).subscribe(workItems => {
-            if (workItems.length === 0) {
-                return;
+    getWorkItemByTeamMembers(start: string, end: string): void {
+        const ntTeamMembers: NtTeamMember[] = [];
+        for (const teamMember of this.teamMembers) {
+            if (this.isTeamMemberSelected[teamMember.id]) {
+                ntTeamMembers.push(teamMember);
             }
-            this.events.length = 0;
-            this.workItemDict = {};
-            for (const workItem of workItems) {
-                const id = workItem.id + ' ' + workItem.title;
-                this.events.push(
-                    {
-                        title: id,
-                        start: new Date(workItem.closedDate),
-                        end: new Date(workItem.closedDate),
-                        color: colors.red,
-                        draggable: false,
-                        resizable: {
-                            beforeStart: true,
-                            afterEnd: true
-                        }
+        }
+        this._apiService.getWorkItemsByNtTeamMembers(start, end, ntTeamMembers).subscribe(workItems => {
+            this.updateEvents(workItems);
+        });
+    }
+
+    /*
+    getMyWorkItem(mon: string, sun: string): void {
+        this._apiService.getMyWorkItems(mon, sun).subscribe(workItems => {
+            this.updateEvents(workItems);
+        });
+    }
+    */
+
+    updateEvents(workItems: NtWorkItem[]) {
+        if (workItems.length === 0) {
+            return;
+        }
+        this.events.length = 0;
+        this.workItemDict = {};
+        for (const workItem of workItems) {
+            const id = workItem.id + ' ' + workItem.title;
+            this.events.push(
+                {
+                    title: id,
+                    start: new Date(workItem.closedDate),
+                    end: new Date(workItem.closedDate),
+                    color: colors.red,
+                    draggable: false,
+                    resizable: {
+                        beforeStart: true,
+                        afterEnd: true
                     }
-                );
-                this.workItemDict[id] = workItem;
+                }
+            );
+            this.workItemDict[id] = workItem;
+        }
+        this.refresh.next();
+    }
+
+    getNtTeamMembers(): void {
+        forkJoin(this._apiService.getMyName(), this._apiService.getNtTeamMembers()).subscribe(results => {
+            if (results && results.length === 2) {
+                this.userName = results[0].name;
+                const ntTeamMembers = results[1];
+                if (ntTeamMembers.length === 0) {
+                    return;
+                }
+                this.teamMembers = ntTeamMembers;
+                for (const ntTeamMember of ntTeamMembers) {
+                    if (ntTeamMember.uniqueName.toLowerCase() === this.userName.toLowerCase()) {
+                        this.isTeamMemberSelected[ntTeamMember.id] = true;
+                    } else {
+                        this.isTeamMemberSelected[ntTeamMember.id] = false;
+                    }
+                }
+                this.monthInit();
             }
-            this.refresh.next();
         });
     }
     // ============================================= HELPER END ===========================================================

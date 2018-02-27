@@ -8,24 +8,51 @@ export class NtApiService {
 
   constructor(private _http: Http) { }
 
-  getDummyWorkItem(): Observable<Array<NtWorkItem>> {
+  getDummyWorkItems(): Observable<Array<NtWorkItem>> {
     return this._http.get('/api/TfsTask/dummy-work-item', ).map(x => {
-      const ntWorkItem: Array<NtWorkItem> = x.json() || [];
-      return ntWorkItem;
+      const ntWorkItems: Array<NtWorkItem> = x.json() || [];
+      return ntWorkItems;
     });
   }
 
-  getAllWorkItem(): Observable<Array<NtWorkItem>> {
-    return this._http.get('/api/TfsTask/all-work-item', ).map(x => {
-      const ntWorkItem: Array<NtWorkItem> = x.json() || [];
-      return ntWorkItem;
+  getMyYearlyWorkItems(): Observable<Array<NtWorkItem>> {
+    return this._http.get('/api/TfsTask/my-yearly-work-item', ).map(x => {
+      const ntWorkItems: Array<NtWorkItem> = x.json() || [];
+      return ntWorkItems;
     });
   }
 
-  getWorkItem(start: string, end: string): Observable<Array<NtWorkItem>> {
-    return this._http.get('/api/TfsTask/work-item', {params: {start: start, end: end}}).map(x => {
-      const ntWorkItem: Array<NtWorkItem> = x.json() || [];
-      return ntWorkItem;
+  getMyWorkItems(start: string, end: string): Observable<Array<NtWorkItem>> {
+    return this._http.get('/api/TfsTask/my-work-item', {params: {start: start, end: end}}).map(x => {
+      const ntWorkItems: Array<NtWorkItem> = x.json() || [];
+      return ntWorkItems;
+    });
+  }
+
+  getWorkItemsByUserName(start: string, end: string, userName: string): Observable<Array<NtWorkItem>> {
+    return this._http.get('/api/TfsTask/work-item-individual', {params: {start: start, end: end, userName: userName}}).map(x => {
+      const ntWorkItems: Array<NtWorkItem> = x.json() || [];
+      return ntWorkItems;
+    });
+  }
+
+  getWorkItemsByNtTeamMembers(start: string, end: string, ntTeamMembers: NtTeamMember[]): Observable<Array<NtWorkItem>> {
+    return this._http.post('/api/TfsTask/work-item-all', {start: start, end: end, ntTeamMembers: ntTeamMembers}).map(x => {
+      const ntWorkItems: Array<NtWorkItem> = x.json() || [];
+      return ntWorkItems;
+    });
+  }
+
+  getNtTeamMembers(): Observable<Array<NtTeamMember>> {
+    return this._http.get('api/TfsTask/team', ).map(team => {
+      const ntTeamMembers: Array<NtTeamMember> = team.json() || [];
+      return ntTeamMembers;
+    });
+  }
+
+  getMyName(): Observable<WindowsUser> {
+    return this._http.get('api/TfsTask/my-name', ).map(name => {
+      return name.json() || {};
     });
   }
 }
@@ -42,4 +69,14 @@ export class NtWorkItem {
   areaPath: string;
   duration: number;
   product: string;
+}
+
+export class NtTeamMember {
+  id: string;
+  uniqueName: string;
+  displayName: string;
+}
+
+export class WindowsUser {
+  name: string;
 }
