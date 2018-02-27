@@ -51,14 +51,18 @@ const colors: any = {
 export class CalendarComponent implements OnInit {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
-    view = 'week';
+    view = 'month';
 
     viewDate: Date = new Date();
 
     modalData: {
-        action: string;
-        event: CalendarEvent;
+        title: string
+        workItem: NtWorkItem
     };
+
+    workItemDict: {
+        [id: string]: NtWorkItem
+    } = {};
 
     actions: CalendarEventAction[] = [
         {
@@ -133,7 +137,7 @@ export class CalendarComponent implements OnInit {
 
     ngOnInit() {
         const today = new Date();
-        this.getWeeklyWorkItem(today);
+        this.getMontlyWorkItem(today);
     }
 
     weekInit() {
@@ -182,7 +186,7 @@ export class CalendarComponent implements OnInit {
     }
 
     handleEvent(action: string, event: CalendarEvent): void {
-        this.modalData = { event, action };
+        this.modalData = { title: event.title, workItem: this.workItemDict[event.title] };
         this._modal.open(this.modalContent, { size: 'lg' });
     }
 
@@ -239,17 +243,19 @@ export class CalendarComponent implements OnInit {
     }
 
     getWorkItem(mon: string, sun: string): void {
-        this._apiService.getWorkItem(mon, sun).subscribe(workitems => {
-            if (workitems.length === 0) {
+        this._apiService.getWorkItem(mon, sun).subscribe(workItems => {
+            if (workItems.length === 0) {
                 return;
             }
             this.events.length = 0;
-            for (const workitem of workitems) {
+            this.workItemDict = {};
+            for (const workItem of workItems) {
+                const id = workItem.id + ' ' + workItem.title;
                 this.events.push(
                     {
-                        title: workitem.id + ' ' + workitem.title,
-                        start: new Date(workitem.closedDate),
-                        end: new Date(workitem.closedDate),
+                        title: id,
+                        start: new Date(workItem.closedDate),
+                        end: new Date(workItem.closedDate),
                         color: colors.red,
                         draggable: false,
                         resizable: {
@@ -258,6 +264,7 @@ export class CalendarComponent implements OnInit {
                         }
                     }
                 );
+                this.workItemDict[id] = workItem;
             }
             this.refresh.next();
         });
