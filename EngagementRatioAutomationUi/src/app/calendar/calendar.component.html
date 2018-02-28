@@ -23,7 +23,7 @@
     <div class="modal-body">{{ modalData?.title }}</div>
 </ng-template>
 
-<div class="row p-4">
+<div class="row pt-4">
     <div class="span12 memberCheckBoxes">
         <form>
             <label class="checkbox-inline px-2" *ngFor="let teamMember of teamMembers">
@@ -39,6 +39,19 @@
                 </div>
             </label>
         </form>
+    </div>    
+</div>
+
+<div class="row pb-4">
+    <div class="span12 memberCheckBoxes">
+        <div class="btn-group">
+            <div class="btn btn-outline-info" (click)="getAllMembers()">
+                All
+            </div>
+            <div class="btn btn-outline-info" (click)="getMine()">
+                Mine
+            </div>
+        </div>
     </div>    
 </div>
 

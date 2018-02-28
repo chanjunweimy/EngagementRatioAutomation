@@ -26,5 +26,7 @@
         public double? Duration { get; set; }
 
         public string Product { get; set; }
+
+        public string TeamProject { get; set; }
     }
 }

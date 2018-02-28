@@ -50,106 +50,15 @@ namespace EngagementRatioAutomation.Controllers
         }
 
         /// <summary>
-        /// Get all tfs tasks associated by the user
-        /// </summary>
-        [HttpGet("my-yearly-work-item")]
-        public List<NtWorkItem> GetMyCurrentYearWorkItems()
-        {
-            GetYearStartAndEndDate(DateTime.Now, out var startDate, out var endDate);
-            return GetMyWorkItems(startDate.ToString("yyyy MMMM dd"), endDate.ToString("yyyy MMMM dd"));
-        }
-
-        /// <summary>
-        /// Get all tfs tasks associated by the user
-        /// </summary>
-        [HttpGet("dummy-work-item")]
-        public List<NtWorkItem> GetMyDummyWorkItems()
-        {
-            var ntWorkItems = new List<NtWorkItem>();
-            ntWorkItems.Add(new NtWorkItem
-            {
-                Id = 1,
-                Activity = "development",
-                AreaPath = "UI",
-                AssignedTo = "Ali",
-                ClosedDate = "01 April 2017",
-                Duration = 2,
-                IterationPath = "Sprint 1",
-                Product = "Baba",
-                State = "Done",
-                Title = "Create dummy UI",
-                WorkItemType = "Task"
-            });
-            return ntWorkItems;
-        }
-
-
-        /// <summary>
-        /// Get tfs Tasks by start and end date
-        /// </summary>
-        [HttpGet("my-work-item")]
-        public List<NtWorkItem> GetMyWorkItems(string start, string end)
-        {
-            var user = (WindowsIdentity)User.Identity;
-
-            var witClient = GetWitClient();
-
-            var startDate = DateTime.Parse(start);
-            var endDate = DateTime.Parse(end);
-            var teamProjectName = NAME_PROJECT_NTCLOUD;
-
-            var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, user.Name, witClient, out var workItemLinks);
-            if (!workItemLinks.Any())
-            {
-                return null;
-            }
-
-            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult);
-            return ntWorkItems;
-        }
-
-        /// <summary>
-        /// Get tfs Tasks by start and end date and specified user
-        /// </summary>
-        [HttpGet("work-item-individual")]
-        public List<NtWorkItem> GetWorkItems(string start, string end, string userName)
-        {
-            var witClient = GetWitClient();
-
-            var startDate = DateTime.Parse(start);
-            var endDate = DateTime.Parse(end);
-            var teamProjectName = NAME_PROJECT_NTCLOUD;
-
-            var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, userName, witClient, out var workItemLinks);
-            if (!workItemLinks.Any())
-            {
-                return null;
-            }
-
-            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult);
-            return ntWorkItems;
-        }
-
-        /// <summary>
         /// Get tfs Tasks by start and end date and specified users
         /// </summary>
         [HttpPost("work-item-all")]
         public List<NtWorkItem> GetWorkItems([FromBody] WorkItemInput input)
         {
-            var witClient = GetWitClient();
-
-            var startDate = DateTime.Parse(input.Start);
-            var endDate = DateTime.Parse(input.End);
-            var teamProjectName = NAME_PROJECT_NTCLOUD;
-
-            var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, input.NtTeamMembers, witClient, out var workItemLinks);
-            if (!workItemLinks.Any())
-            {
-                return null;
-            }
-
-            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult);
-            return ntWorkItems;
+            var ntCloudWorkItems = GetNtWorkItemsInCollection(input, URL_COLLECTION_NTCLOUD, NAME_PROJECT_NTCLOUD);
+            var miscWorkItems = GetNtWorkItemsInCollection(input, URL_COLLECTION_NTSG, NAME_PROJECT_MISCSG);
+            ntCloudWorkItems.AddRange(miscWorkItems);
+            return ntCloudWorkItems;
         }
 
 
@@ -181,8 +90,24 @@ namespace EngagementRatioAutomation.Controllers
                 .ToList();
         }
 
+        private static List<NtWorkItem> GetNtWorkItemsInCollection(WorkItemInput input, string collectionUri, string teamProjectName)
+        {
+            var startDate = DateTime.Parse(input.Start);
+            var endDate = DateTime.Parse(input.End);
+            
+            var witClient = GetWitClient(collectionUri);
+            var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, input.NtTeamMembers, witClient, out var workItemLinks);
+            if (!workItemLinks.Any())
+            {
+                return new List<NtWorkItem>();
+            }
+
+            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName);
+            return ntWorkItems;
+        }
+
         private static List<NtWorkItem> GetNtWorkItems(WorkItemLink[] workItemLinks, WorkItemTrackingHttpClient witClient,
-            WorkItemQueryResult workItemQueryResult)
+            WorkItemQueryResult workItemQueryResult, string teamProjectName)
         {
             var fields = FIELDS;
             var allIds = new List<int>();
@@ -225,8 +150,8 @@ namespace EngagementRatioAutomation.Controllers
                 }
                 categoryDict[id] = categoryDict[refId];
             }
-            int skip = 0;
-            int take = 50;
+            var skip = 0;
+            var take = 100;
 
             var ntWorkItems = new List<NtWorkItem>();
             int[] curTaskIds;
@@ -286,7 +211,8 @@ namespace EngagementRatioAutomation.Controllers
                         ClosedDate = closedDate,
                         AreaPath = areaPath,
                         Duration = duration,
-                        Product = product
+                        Product = product,
+                        TeamProject = teamProjectName
                     };
                     ntWorkItems.Add(ntWorkItem);
                 }
@@ -294,33 +220,6 @@ namespace EngagementRatioAutomation.Controllers
                 skip += take;
             } while (curTaskIds.Count() == take);
             return ntWorkItems;
-        }
-
-        private static WorkItemQueryResult WorkItemQueryResult(string teamProjectName, DateTime endDate, DateTime startDate,
-            string userName, WorkItemTrackingHttpClient witClient, out WorkItemLink[] workItemLinks)
-        {
-//create a wiql object and build our query
-            var wiql = new Wiql()
-            {
-                Query =
-                    "Select [System.Id], [System.WorkItemType], [Microsoft.VSTS.Common.Activity], [System.Title], [System.AssignedTo], [System.State], [System.IterationPath], [Microsoft.VSTS.Common.ClosedDate], [System.AreaPath], [Nt.Duration] " +
-                    "From WorkItemLinks " +
-                    "Where (Source.[System.TeamProject] = '" + teamProjectName +
-                    "' and Source.[System.State] <> 'Removed' and Source.[System.WorkItemType] <> 'Task') " +
-                    "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') " +
-                    "And (Target.[System.TeamProject] = '" + teamProjectName +
-                    "' and Target.[System.State] = 'Done' and Target.[Microsoft.VSTS.Common.ClosedDate] <= '" +
-                    endDate.ToLongDateString() + "' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '" +
-                    startDate.ToLongDateString() + "' and Target.[System.AssignedTo] = '" + userName +
-                    "' and Target.[System.WorkItemType] = 'Task') " +
-                    "Order By [System.Id] mode (Recursive, ReturnMatchingChildren) "
-            };
-
-
-            var workItemQueryResult = witClient.QueryByWiqlAsync(wiql).Result;
-            var relations = workItemQueryResult.WorkItemRelations;
-            workItemLinks = relations as WorkItemLink[] ?? relations.ToArray();
-            return workItemQueryResult;
         }
 
         private static WorkItemQueryResult WorkItemQueryResult(string teamProjectName, DateTime endDate, DateTime startDate,
@@ -360,19 +259,12 @@ namespace EngagementRatioAutomation.Controllers
             return workItemQueryResult;
         }
 
-        private static WorkItemTrackingHttpClient GetWitClient()
+        private static WorkItemTrackingHttpClient GetWitClient(string collectionUri)
         {
-            var collectionUri = URL_COLLECTION_NTCLOUD;
             // Create instance of VssConnection using Windows credentials (NTLM)
             var connection = new VssConnection(new Uri(collectionUri), new VssCredentials(new WindowsCredential(true)));
             // Create instance of WorkItemTrackingHttpClient using VssConnection
             return connection.GetClient<WorkItemTrackingHttpClient>();
-        }
-
-        private void GetYearStartAndEndDate(DateTime d, out DateTime startDate, out DateTime endDate)
-        {
-            startDate = new DateTime(d.Year, 1, 1);
-            endDate = new DateTime(d.Year, 12, 31);
         }
     }
 }

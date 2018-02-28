@@ -204,6 +204,18 @@ export class CalendarComponent implements OnInit {
         this.refresh.next();
     }
 
+    getAllMembers(): void {
+        for (const teamMember of this.teamMembers) {
+            this.isTeamMemberSelected[teamMember.id] = true;
+        }
+        this.getViewWorkItem();
+    }
+
+    getMine(): void {
+        this.setMineSelectedOnly();
+        this.getViewWorkItem();
+    }
+
     exportToCsv(): void {
         this.modalData = { title: 'Exporting...' };
         const ref = this._modal.open(this.modalContent, { size: 'sm',
@@ -285,14 +297,6 @@ export class CalendarComponent implements OnInit {
         });
     }
 
-    /*
-    getMyWorkItem(mon: string, sun: string): void {
-        this._apiService.getMyWorkItems(mon, sun).subscribe(workItems => {
-            this.updateEvents(workItems);
-        });
-    }
-    */
-
     updateEvents(workItems: NtWorkItem[]) {
         if (workItems.length === 0) {
             return;
@@ -300,7 +304,7 @@ export class CalendarComponent implements OnInit {
         this.events.length = 0;
         this.workItemDict = {};
         for (const workItem of workItems) {
-            const id = workItem.id + ' ' + workItem.title;
+            const id = workItem.teamProject.replace(' ', '') + '-' + workItem.id + ' ' + workItem.title;
             this.events.push(
                 {
                     title: id,
@@ -328,16 +332,20 @@ export class CalendarComponent implements OnInit {
                     return;
                 }
                 this.teamMembers = ntTeamMembers;
-                for (const ntTeamMember of ntTeamMembers) {
-                    if (ntTeamMember.uniqueName.toLowerCase() === this.userName.toLowerCase()) {
-                        this.isTeamMemberSelected[ntTeamMember.id] = true;
-                    } else {
-                        this.isTeamMemberSelected[ntTeamMember.id] = false;
-                    }
-                }
+                this.setMineSelectedOnly();
                 this.monthInit();
             }
         });
+    }
+
+    setMineSelectedOnly(): void {
+        for (const ntTeamMember of this.teamMembers) {
+            if (ntTeamMember.uniqueName.toLowerCase() === this.userName.toLowerCase()) {
+                this.isTeamMemberSelected[ntTeamMember.id] = true;
+            } else {
+                this.isTeamMemberSelected[ntTeamMember.id] = false;
+            }
+        }
     }
     // ============================================= HELPER END ===========================================================
 }
