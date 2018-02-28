@@ -61,7 +61,119 @@ namespace EngagementRatioAutomation.Controllers
             return ntCloudWorkItems;
         }
 
+        [HttpPost("collapsed-work-item")]
+        public Dictionary<string, List<NtCollapsedWorkItem>> GetCollapsedWorkItemsWorkItems([FromBody] WorkItemInput input)
+        {
+            var workItems = GetWorkItems(input);
+            var collapsedWorkItems = new Dictionary<string, List<NtCollapsedWorkItem>>();
+            var workItemDates = new Dictionary<string, Dictionary<string, int>>();
+            foreach (var workItem in workItems)
+            {
+                if (!collapsedWorkItems.ContainsKey(workItem.AssignedTo))
+                {
+                    collapsedWorkItems[workItem.AssignedTo] = new List<NtCollapsedWorkItem>();
+                    workItemDates[workItem.AssignedTo] = new Dictionary<string, int>();
+                }
 
+                var dateKey = workItem.ClosedDate;
+                if (!workItemDates[workItem.AssignedTo].ContainsKey(dateKey))
+                {
+                    workItemDates[workItem.AssignedTo][dateKey] = collapsedWorkItems[workItem.AssignedTo].Count;
+                    var collapsedWorkItem = new NtCollapsedWorkItem
+                    {
+                        Employee = workItem.AssignedTo,
+                        Date = workItem.ClosedDate,
+                        Title = workItem.Title,
+                        DurationDemonstration = 0,
+                        DurationDeployment = 0,
+                        DurationDesign = 0,
+                        DurationDevelopment = 0,
+                        DurationDocumentation = 0,
+                        DurationMarketing = 0,
+                        DurationRequirements = 0,
+                        DurationTesting = 0,
+                        DurationOthers = 0,
+                        DurationNA = 0,
+                        DurationTotal = 0,
+                        Product = new Dictionary<string, double>()
+                    };
+                    collapsedWorkItems[workItem.AssignedTo].Add(collapsedWorkItem);
+                }
+                else
+                {
+                    collapsedWorkItems[workItem.AssignedTo][workItemDates[workItem.AssignedTo][dateKey]].Title +=
+                        ", " + workItem.Title;
+                }
+
+                var itemIndex = workItemDates[workItem.AssignedTo][dateKey];
+
+                if (workItem.Activity.IsNullOrEmpty())
+                {
+                    workItem.Activity = string.Empty;
+                }
+                workItem.Activity = workItem.Activity.Trim().ToLower();
+
+                double duration = 0;
+                if (workItem.Duration != null)
+                {
+                    duration = workItem.Duration.Value;
+                }
+
+                collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationTotal += duration;
+                if (workItem.Activity.Equals(string.Empty))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationNA += duration;
+                }
+                else if (workItem.Activity.Equals("demonstration"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDemonstration += duration;
+                }
+                else if (workItem.Activity.Equals("deployment"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
+                }
+                else if (workItem.Activity.Equals("design"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
+                }
+                else if (workItem.Activity.Equals("development"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
+                }
+                else if (workItem.Activity.Equals("documentation"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
+                }
+                else if (workItem.Activity.Equals("marketing"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationMarketing += duration;
+                }
+                else if (workItem.Activity.Equals("requirements"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationRequirements += duration;
+                }
+                else if (workItem.Activity.Equals("testing"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationTesting += duration;
+                }
+                else if (workItem.Activity.Equals("others"))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                }
+
+                if (workItem.TeamProject.Trim().ToLower().Replace(" ", "").Equals("miscsg"))
+                {
+                    continue;
+                }
+
+                if (!collapsedWorkItems[workItem.AssignedTo][itemIndex].Product.ContainsKey(workItem.Product))
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] = 0;
+                }
+                collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+            }
+            return collapsedWorkItems;
+        }
 
         /// <summary>
         /// Get tfs Tasks by start and end date
@@ -131,7 +243,12 @@ namespace EngagementRatioAutomation.Controllers
             foreach (var epicWorkItem in epicWorkItems)
             {
                 var id = int.Parse(epicWorkItem.Fields["System.Id"].ToString());
-                var title = epicWorkItem.Fields["System.Title"].ToString();
+
+                var title = "MISC";
+                if (epicWorkItem.Fields["System.WorkItemType"].ToString().ToLower().Equals("epic"))
+                {
+                    title = epicWorkItem.Fields["System.Title"].ToString();
+                }
                 categoryDict.Add(id, title);
             }
 
@@ -234,7 +351,7 @@ namespace EngagementRatioAutomation.Controllers
                 "And (Target.[System.TeamProject] = '" + teamProjectName +
                 "' and Target.[System.State] = 'Done' and Target.[Microsoft.VSTS.Common.ClosedDate] <= '" +
                 endDate.ToLongDateString() + "' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '" +
-                startDate.ToLongDateString() + "' and ";
+                startDate.ToLongDateString() + "' and ( ";
             for (var i = 0; i < ntTeamMembers.Count; i++)
             {
                 query += " Target.[System.AssignedTo] = '" + ntTeamMembers[i].UniqueName + "' ";
@@ -243,7 +360,7 @@ namespace EngagementRatioAutomation.Controllers
                     query += " or ";
                 }
             }
-            query += " and Target.[System.WorkItemType] = 'Task') " +
+            query += " ) and Target.[System.WorkItemType] = 'Task') " +
                 "Order By [System.Id] mode (Recursive, ReturnMatchingChildren) ";
 
             //create a wiql object and build our query
