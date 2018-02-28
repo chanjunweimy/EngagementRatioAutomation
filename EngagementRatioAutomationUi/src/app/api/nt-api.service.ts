@@ -15,6 +15,14 @@ export class NtApiService {
     });
   }
 
+  getCollapsedWorkItemsByNtTeamMembers(start: string, end: string, ntTeamMembers: NtTeamMember[]):
+        Observable<{ [id: string]: NtCollapsedWorkItem[]}> {
+    return this._http.post('/api/TfsTask/collapsed-work-item', {start: start, end: end, ntTeamMembers: ntTeamMembers}).map(x => {
+      const ntCollapsedWorkItems: { [id: string]: NtCollapsedWorkItem[]} = x.json() || {};
+      return ntCollapsedWorkItems;
+    });
+  }
+
   getNtTeamMembers(): Observable<Array<NtTeamMember>> {
     return this._http.get('api/TfsTask/team', ).map(team => {
       const ntTeamMembers: Array<NtTeamMember> = team.json() || [];
@@ -52,4 +60,22 @@ export class NtTeamMember {
 
 export class WindowsUser {
   name: string;
+}
+
+export class NtCollapsedWorkItem {
+  employee: string;
+  date: string;
+  title: string;
+  durationDemonstration: number;
+  durationDeployment: number;
+  durationDesign: number;
+  durationDevelopment: number;
+  durationDocumentation: number;
+  durationMarketing: number;
+  durationRequirements: number;
+  durationTesting: number;
+  durationOthers: number;
+  durationNA: number;
+  durationTotal: number;
+  product: {[id: string]: number};
 }

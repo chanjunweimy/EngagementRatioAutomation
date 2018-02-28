@@ -122,6 +122,11 @@
                 <calendar-util-date-time-picker name="date-end" [(ngModel)]="endDate" placeholder="End Date">
                 </calendar-util-date-time-picker>
 
+                <label> Name: </label>
+                <div class="span6 px-2 input-group">                    
+                    <input type="text" name="excel-file-name" class="form-control" [(ngModel)]="excelFileName">
+                </div>                
+
                 <button class="btn btn-danger" (click)="exportToCsv()">
                     Export
                 </button>

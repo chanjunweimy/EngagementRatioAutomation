@@ -17,7 +17,13 @@ import { DateTimePickerComponent } from './date-time-picker.component';
     NgbTimepickerModule.forRoot(),
     CalendarModule
   ],
-  declarations: [CalendarHeaderComponent, DateTimePickerComponent],
-  exports: [CalendarHeaderComponent, DateTimePickerComponent]
+  declarations: [
+    CalendarHeaderComponent,
+    DateTimePickerComponent
+  ],
+  exports: [
+    CalendarHeaderComponent,
+    DateTimePickerComponent
+  ]
 })
 export class CalendarUtilModule {}
