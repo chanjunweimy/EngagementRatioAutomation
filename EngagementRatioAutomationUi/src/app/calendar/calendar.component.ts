@@ -3,6 +3,8 @@ import {
     ChangeDetectionStrategy,
     ViewChild,
     TemplateRef,
+    AfterViewInit,
+    ChangeDetectorRef,
     OnInit
 } from '@angular/core';
 import {
@@ -56,7 +58,7 @@ const colors: any = {
     styleUrls: ['calendar.component.less'],
     templateUrl: 'calendar.component.html'
 })
-export class CalendarComponent implements OnInit {
+export class CalendarComponent implements AfterViewInit, OnInit {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
     view = 'month';
@@ -104,6 +106,8 @@ export class CalendarComponent implements OnInit {
 
     endDate: Date = new Date();
 
+    isCollapse: boolean;
+
     // excel
     excelWopts: XLSX.WritingOptions = { bookType: 'xlsx', type: 'array' };
 
@@ -150,10 +154,15 @@ export class CalendarComponent implements OnInit {
     activeDayIsOpen = true;
 
     constructor(private _modal: NgbModal,
-                private _apiService: NtApiService) {}
+                private _apiService: NtApiService,
+                private _changeDetectorRef: ChangeDetectorRef) {}
 
     ngOnInit() {
+        this.isCollapse = false;
         this.getNtTeamMembers();
+    }
+
+    ngAfterViewInit() {
     }
 
     weekInit() {
@@ -187,11 +196,13 @@ export class CalendarComponent implements OnInit {
     }
 
     handleEvent(action: string, event: CalendarEvent): void {
-        const workItem = this.workItemDict[event.title];
-        if (workItem.teamProject.toLowerCase() === 'ntcloud') {
-            window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + workItem.id, '_blank');
-        } else if (workItem.teamProject.toLowerCase() === 'misc sg') {
-            window.open('http://aws-tfs:8080/tfs/NumtechSg/MISC%20Sg/_workitems?id=' + workItem.id, '_blank');
+        if (!this.isCollapse) {
+            const workItem = this.workItemDict[event.title];
+            if (workItem.teamProject.toLowerCase() === 'ntcloud') {
+                window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + workItem.id, '_blank');
+            } else if (workItem.teamProject.toLowerCase() === 'misc sg') {
+                window.open('http://aws-tfs:8080/tfs/NumtechSg/MISC%20Sg/_workitems?id=' + workItem.id, '_blank');
+            }
         }
     }
 
@@ -237,6 +248,7 @@ export class CalendarComponent implements OnInit {
             .subscribe(collapsedWorkItems => {
                 this.createExcel(collapsedWorkItems, this.startDate, this.endDate);
                 ref.close();
+                this._changeDetectorRef.detectChanges();
             });
     }
 
@@ -260,6 +272,12 @@ export class CalendarComponent implements OnInit {
             const data = <AOA>(XLSX.utils.sheet_to_json(ws, { header: 1 }));
         };
         reader.readAsBinaryString(target.files[0]);
+    }
+
+    collapse() {
+        console.log(this.isCollapse);
+        // this.isCollapse = true;
+        this.getViewWorkItem();
     }
 
     // ============================================= HELPER START =========================================================
@@ -323,10 +341,18 @@ export class CalendarComponent implements OnInit {
                                                           backdrop: 'static',
                                                           keyboard: false });
         const ntTeamMembers = this.getSelectedNtTeamMembers();
-        this._apiService.getWorkItemsByNtTeamMembers(start, end, ntTeamMembers).subscribe(ntWorkItems => {
-            this.updateEvents(ntWorkItems);
-            ref.close();
-        });
+        if (!this.isCollapse) {
+            this._apiService.getWorkItemsByNtTeamMembers(start, end, ntTeamMembers).subscribe(ntWorkItems => {
+                this.updateEvents(ntWorkItems);
+                ref.close();
+            });
+        } else {
+            this._apiService.getCollapsedWorkItemsByNtTeamMembers(start, end, ntTeamMembers)
+            .subscribe(collapsedWorkItems => {
+                this.updateCollapsedEvents(collapsedWorkItems);
+                ref.close();
+            });
+        }
     }
 
     updateEvents(workItems: NtWorkItem[]) {
@@ -337,9 +363,10 @@ export class CalendarComponent implements OnInit {
         this.workItemDict = {};
         for (const workItem of workItems) {
             const id = workItem.teamProject.replace(/ /g, '') + '-' + workItem.id + ' ' + workItem.title;
+            const title = id;
             this.events.push(
                 {
-                    title: id,
+                    title: title,
                     start: new Date(workItem.closedDate),
                     end: new Date(workItem.closedDate),
                     color: colors.red,
@@ -355,6 +382,35 @@ export class CalendarComponent implements OnInit {
         this.refresh.next();
     }
 
+    updateCollapsedEvents(workItems: { [id: string]: NtCollapsedWorkItem[]}) {
+        this.events.length = 0;
+        for (const employee in workItems) {
+            if (!workItems.hasOwnProperty(employee)) {
+                continue;
+            }
+
+            for (const workItem of workItems[employee]) {
+                const title = workItem.employee + ': ' + workItem.title;
+                const id = title;
+                this.events.push(
+                    {
+                        title: title,
+                        start: new Date(workItem.date),
+                        end: new Date(workItem.date),
+                        color: colors.red,
+                        draggable: false,
+                        resizable: {
+                            beforeStart: true,
+                            afterEnd: true
+                        }
+                    }
+                );
+            }
+        }
+        this.refresh.next();
+    }
+
+
     getNtTeamMembers(): void {
         forkJoin(this._apiService.getMyName(), this._apiService.getNtTeamMembers()).subscribe(results => {
             if (results && results.length === 2) {
@@ -365,6 +421,7 @@ export class CalendarComponent implements OnInit {
                 }
                 this.teamMembers = ntTeamMembers;
                 this.setMineSelectedOnly();
+                this._changeDetectorRef.detectChanges();
                 this.monthInit();
             }
         });

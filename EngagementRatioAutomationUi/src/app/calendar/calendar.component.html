@@ -58,9 +58,15 @@
 <div class="row pb-4">
     <div class="span12 memberCheckBoxes">
         <div class="btn-group">
-            <div class="btn btn-outline-primary" class.active="false">
-                Collapse
-            </div>
+            <label class="btn btn-primary" [class.active]="isCollapse">
+                <input id="collapse-checkbox" 
+                       name="collapse-checkbox" 
+                       type="checkbox" 
+                       class="hide"  
+                       (change)="collapse()" 
+                       [(ngModel)]="isCollapse" 
+                       [checked]="isCollapse"> Collapse
+            </label>
         </div>
     </div>
 </div>
