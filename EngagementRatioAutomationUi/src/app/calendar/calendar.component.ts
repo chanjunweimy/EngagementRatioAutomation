@@ -19,7 +19,8 @@ import {
     isLastDayOfMonth,
     compareAsc,
     differenceInCalendarDays,
-    lastDayOfMonth
+    lastDayOfMonth,
+    parse
 } from 'date-fns';
 import { Subject } from 'rxjs/Subject';
 import { NgbModal, NgbDateStruct } from '@ng-bootstrap/ng-bootstrap';
@@ -140,6 +141,36 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         DURATION_TOTAL: 15,
         MISMATCH: 16
     };
+
+    // JustLogin
+    JUSTLOGIN_HEADER_DICT = {
+        EMPLOYEE: 'Employee',
+        DATE: 'Date',
+        DAY: 'Day',
+        IN: 'In',
+        REMARKS: 'Remarks',
+        WH: 'Hours Worked'
+    };
+
+    JUSTLOGIN_NAME_DICT = {
+        'Ai Matsuoka': 'Ai Matsuoka',
+        'Chan Jun Wei': 'Chan Jun Wei',
+        'Chang Hai Bin': 'Chang Hai Bin',
+        'Chen Penghao': 'Chen Penghao',
+        'Lee Chung': 'Chung Lee',
+        'Shaoxin Luan': 'Shaoxin Luan',
+        'Siaw Kian Zhong': 'Kian Zhong Siaw',
+        'Wan Youyi': 'Youyi, Wan'
+    };
+
+    DATE_SEPARATORS = ['-', '/'];
+
+    justLoginDict: {[id: string]:
+                        {[id: string]: {
+                            in: string,
+                            remarks: string,
+                            engagedHour: number
+                        }}} = {};
 
     DAY_CONSTS = {
         MONDAY: 0,
@@ -270,6 +301,69 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
             /* save data */
             const data = <AOA>(XLSX.utils.sheet_to_json(ws, { header: 1 }));
+            const header = data[0];
+            const headerDict = {};
+            for (let i = 0; i < header.length; i++) {
+                let title = header[i];
+                title = title.trim();
+                if (title !== this.JUSTLOGIN_HEADER_DICT.EMPLOYEE &&
+                    title !== this.JUSTLOGIN_HEADER_DICT.DATE &&
+                    title !== this.JUSTLOGIN_HEADER_DICT.DAY &&
+                    title !== this.JUSTLOGIN_HEADER_DICT.IN &&
+                    title !== this.JUSTLOGIN_HEADER_DICT.WH &&
+                    title !== this.JUSTLOGIN_HEADER_DICT.REMARKS) {
+                    continue;
+                }
+                headerDict[title] = i;
+            }
+            this.justLoginDict = {};
+            for (let i = 1; i < data.length; i++) {
+                const dateString: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.DATE]].trim();
+                let tokens: string[] = [];
+                for (const separator of this.DATE_SEPARATORS) {
+                    if (dateString.includes(separator)) {
+                        tokens = dateString.split(separator);
+                    }
+                }
+
+                let employee = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.EMPLOYEE]];
+                employee = this.JUSTLOGIN_NAME_DICT[employee];
+
+                let date: string;
+                if (tokens.length >= 3) {
+                    const cur = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
+                    if (tokens[2].length === 2) {
+                        cur.setFullYear(cur.getFullYear() + 100);
+                    }
+                    date = cur.toDateString();
+                }
+                let inOffice: string;
+                if (data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]].trim() === '-') {
+                    inOffice = undefined;
+                } else {
+                    inOffice = new Date(date + ' '
+                                + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]]).toTimeString();
+                }
+                const remarks: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.REMARKS]];
+
+                let engagedHour = +data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]];
+                if (!inOffice) {
+                    engagedHour = 0;
+                } else if (remarks && (remarks.toLowerCase().includes('annual') || remarks.toLowerCase().includes('sick'))) {
+                    engagedHour -= 4;
+                }
+
+                if (!this.justLoginDict.hasOwnProperty(employee)) {
+                    this.justLoginDict[employee] = {};
+                }
+
+                this.justLoginDict[employee][date] = {
+                    in: inOffice,
+                    engagedHour: engagedHour,
+                    remarks: remarks
+                };
+            }
+            console.log(this.justLoginDict);
         };
         reader.readAsBinaryString(target.files[0]);
     }
@@ -510,14 +604,26 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 if (diff2 < 0) {
                     diff2 *= -1;
                 }
+
+                const person = collapsedWorkItem.employee.replace(/ *<[^)]*> */g, '').trim();
                 for (let j = 0; j <= diff2; j++) {
                     if (j !== diff) {
+                        let engagedHour = 0;
+                        let remarks = '';
+                        const dateString = start.toDateString();
+                        if (this.justLoginDict.hasOwnProperty(person) && this.justLoginDict[person].hasOwnProperty(dateString)) {
+                            engagedHour = this.justLoginDict[person][dateString].engagedHour;
+                            if (this.justLoginDict[person][dateString].remarks) {
+                                remarks = this.justLoginDict[person][dateString].remarks;
+                            }
+                        }
                         const dummyRow = [
                             collapsedWorkItem.employee,
                             start.toDateString(),
+                            remarks,
+                            engagedHour,
                             '',
                             0,
-                            '',
                             0,
                             0,
                             0,
@@ -528,16 +634,23 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             0,
                             0,
                             0,
-                            0,
-                            0
+                            engagedHour
                         ];
                         sheets[employee].push(dummyRow);
                     } else {
-                        const engagedHour = 0;
+                        let engagedHour = 0;
+                        let remarks = '';
+                        const dateString = new Date(collapsedWorkItem.date).toDateString();
+                        if (this.justLoginDict.hasOwnProperty(person) && this.justLoginDict[person].hasOwnProperty(dateString)) {
+                            engagedHour = this.justLoginDict[person][dateString].engagedHour;
+                            if (this.justLoginDict[person][dateString].remarks) {
+                                remarks = this.justLoginDict[person][dateString].remarks;
+                            }
+                        }
                         const row = [
                             collapsedWorkItem.employee,
-                            new Date(collapsedWorkItem.date).toDateString(),
-                            '',
+                            dateString,
+                            remarks,
                             engagedHour,
                             collapsedWorkItem.title,
                             collapsedWorkItem.durationDemonstration,
