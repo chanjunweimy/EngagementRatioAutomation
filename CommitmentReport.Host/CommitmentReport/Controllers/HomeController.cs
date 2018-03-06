@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EngagementRatioAutomation.Controllers
+namespace CommitmentReport.Controllers
 {
     /// <summary>
     /// Default controller that redirects browser to swagger url.

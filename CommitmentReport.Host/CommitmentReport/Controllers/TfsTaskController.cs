@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
-using EngagementRatioAutomation.Controllers.dto;
+using CommitmentReport.Controllers.dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.TeamFoundation.Common;
 using Microsoft.TeamFoundation.Core.WebApi;
@@ -12,7 +12,7 @@ using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
 
-namespace EngagementRatioAutomation.Controllers
+namespace CommitmentReport.Controllers
 {
     /// <summary>
     /// Controller that connects to Tfs.

@@ -15,7 +15,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "EngagementRatioAutomation": {
+    "CommitmentReport": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

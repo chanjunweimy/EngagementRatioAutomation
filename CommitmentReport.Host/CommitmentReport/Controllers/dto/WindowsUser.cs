@@ -1,4 +1,4 @@
-﻿namespace EngagementRatioAutomation.Controllers.dto
+namespace CommitmentReport.Controllers.dto
 {
     public class WindowsUser
     {

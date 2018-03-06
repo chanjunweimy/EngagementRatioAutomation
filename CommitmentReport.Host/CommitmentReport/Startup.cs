@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc.Cors.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Swashbuckle.AspNetCore.Swagger;
 
-namespace EngagementRatioAutomation
+namespace CommitmentReport
 {
     public class Startup
     {
@@ -52,7 +52,7 @@ namespace EngagementRatioAutomation
 
                 // Set the comments path for the Swagger JSON and UI.
                 var basePath = AppContext.BaseDirectory;
-                var xmlPath = Path.Combine(basePath, "EngagementRatioAutomation.xml");
+                var xmlPath = Path.Combine(basePath, "CommitmentReport.xml");
                 c.IncludeXmlComments(xmlPath);
             });
         }

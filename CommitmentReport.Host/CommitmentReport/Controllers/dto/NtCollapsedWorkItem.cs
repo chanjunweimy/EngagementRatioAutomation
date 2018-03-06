@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace EngagementRatioAutomation.Controllers.dto
+namespace CommitmentReport.Controllers.dto
 {
     public class NtCollapsedWorkItem
     {

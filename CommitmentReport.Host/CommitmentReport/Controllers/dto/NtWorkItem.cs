@@ -1,4 +1,4 @@
-﻿namespace EngagementRatioAutomation.Controllers.dto
+namespace CommitmentReport.Controllers.dto
 {
     /// <summary>
     /// Work Item shown by UI filtered by the properties in the class
