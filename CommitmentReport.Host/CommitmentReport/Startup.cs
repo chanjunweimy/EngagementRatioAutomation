@@ -67,13 +67,24 @@ namespace CommitmentReport
             app.UseDefaultFiles();
             app.UseStaticFiles();
 
-            app.UseMvc(routes =>
+            app.UseMvc(
+#if DEBUG
+            routes =>
             {
-                routes.MapRoute(
+                    routes.MapRoute(
                     name: "default_route",
                     template: "{controller}/{action}/{id?}",
                     defaults: new { controller = "Home", action = "Index" });
-            });
+            }
+#elif RELEASE
+            routes =>
+            {
+                routes.MapRoute(
+                    name: "default",
+                    template: "{controller}/{action=Index}/{id?}");
+            }
+#endif
+            );
 
             // Enable middleware to serve generated Swagger as a JSON endpoint
             app.UseSwagger();

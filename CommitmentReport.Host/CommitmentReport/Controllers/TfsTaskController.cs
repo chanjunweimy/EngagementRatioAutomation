@@ -293,16 +293,16 @@ namespace CommitmentReport.Controllers
                     var title = taskWorkItem.Fields["System.Title"].ToString();
                     var assignedTo = taskWorkItem.Fields["System.AssignedTo"].ToString();
                     var state = taskWorkItem.Fields["System.State"].ToString();
-                    string iterationPath = null;
-                    if (taskWorkItem.Fields.ContainsKey("System.IterationPath"))
-                    {
-                        iterationPath = taskWorkItem.Fields["System.IterationPath"].ToString();
-                    }
                     string closedDate = null;
                     if (taskWorkItem.Fields.ContainsKey("Microsoft.VSTS.Common.ClosedDate"))
                     {
                         closedDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Common.ClosedDate"].ToString())
                             .ToString("yyyy MMMM dd");
+                    }
+                    string iterationPath = null;
+                    if (taskWorkItem.Fields.ContainsKey("System.IterationPath"))
+                    {
+                        iterationPath = taskWorkItem.Fields["System.IterationPath"].ToString();
                     }
                     string areaPath = null;
                     if (taskWorkItem.Fields.ContainsKey("System.AreaPath"))

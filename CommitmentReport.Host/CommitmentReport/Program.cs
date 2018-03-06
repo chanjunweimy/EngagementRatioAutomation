@@ -1,13 +1,11 @@
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.WindowsServices;
 using Microsoft.AspNetCore.Server.HttpSys;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace CommitmentReport
 {
@@ -15,10 +13,25 @@ namespace CommitmentReport
     {
         public static void Main(string[] args)
         {
-            BuildWebHost(args).Run();
+            bool isService = true;
+            if (Debugger.IsAttached || args.Contains("--console"))
+            {
+                isService = false;
+            }
+
+            var host = BuildWebHost(args, isService);
+
+            if (isService)
+            {
+                host.RunAsService();
+            }
+            else
+            {
+                host.Run();
+            }
         }
 
-        public static IWebHost BuildWebHost(string[] args)
+        public static IWebHost BuildWebHost(string[] args, bool isService)
         {
             var configuration = new ConfigurationBuilder()
                                 .AddCommandLine(args)
@@ -32,6 +45,13 @@ namespace CommitmentReport
                                 .Build();
             }
 
+            var pathToContentRoot = Directory.GetCurrentDirectory();
+            if (isService)
+            {
+                var pathToExe = Process.GetCurrentProcess().MainModule.FileName;
+                pathToContentRoot = Path.GetDirectoryName(pathToExe);
+            }
+
             return WebHost.CreateDefaultBuilder(args)
 #if HTTP_SYS
                 .UseHttpSys(options =>
@@ -41,6 +61,7 @@ namespace CommitmentReport
                     options.Authentication.AllowAnonymous = false;
                 })
 #endif
+                .UseContentRoot(pathToContentRoot)
                 .UseConfiguration(configuration)
                 .UseStartup<Startup>()
                 .Build();
