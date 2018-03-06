@@ -33,12 +33,14 @@ namespace CommitmentReport
             }
 
             return WebHost.CreateDefaultBuilder(args)
+#if HTTP_SYS
                 .UseHttpSys(options =>
                 {
                     options.Authentication.Schemes =
                         AuthenticationSchemes.NTLM | AuthenticationSchemes.Negotiate;
                     options.Authentication.AllowAnonymous = false;
                 })
+#endif
                 .UseConfiguration(configuration)
                 .UseStartup<Startup>()
                 .Build();
