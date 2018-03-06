@@ -86,7 +86,7 @@
         </div>
     </div>
     <div class="col-md-4">
-        <h3>{{ viewDate | calendarDate:(view + 'ViewTitle'):'en' }}</h3>
+        <h3>{{ viewDate | calendarDate:(viewString + 'ViewTitle'):'en' }}</h3>
     </div>
     <div class="col-md-4">
         <div class="btn-group">
@@ -95,6 +95,9 @@
             </div>
             <div class="btn btn-primary" (click)="weekInit()" [class.active]="view === 'week'">
                 Week
+            </div>
+            <div class="btn btn-primary" (click)="iterationInit()" [class.active]="view === 'iteration'">
+                Iteration
             </div>
             <!--
             <div class="btn btn-primary" (click)="view = 'day'" [class.active]="view === 'day'">
@@ -113,6 +116,15 @@
     <mwl-calendar-week-view *ngSwitchCase="'week'" [viewDate]="viewDate" [events]="events" [refresh]="refresh" (eventClicked)="handleEvent('Clicked', $event.event)"
         (eventTimesChanged)="eventTimesChanged($event)">
     </mwl-calendar-week-view>
+    <div *ngSwitchCase="'iteration'">
+        <div>
+            <div class="cal-day-headers">
+                <div class="cal-header cal-today cal-weekend" style="touch-action: none; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);">
+                <b>Sprint </b>
+                </div>
+            </div>
+        </div>
+    </div>
     <!--
     <mwl-calendar-day-view *ngSwitchCase="'day'" [viewDate]="viewDate" [events]="events" [refresh]="refresh" (eventClicked)="handleEvent('Clicked', $event.event)"
         (eventTimesChanged)="eventTimesChanged($event)">

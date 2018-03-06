@@ -63,6 +63,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
     view = 'month';
+    viewString = 'month';
 
     userName = '';
 
@@ -198,12 +199,19 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
     weekInit() {
         this.view = 'week';
+        this.viewString = this.view;
         this.getWeeklyWorkItem(this.viewDate);
     }
 
     monthInit() {
         this.view = 'month';
+        this.viewString = this.view;
         this.getMontlyWorkItem(this.viewDate);
+    }
+
+    iterationInit() {
+        this.view = 'iteration';
+        this.viewString = 'month';
     }
 
     dayClicked({ date, events }: { date: Date; events: CalendarEvent[] }): void {
@@ -323,6 +331,9 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 for (const separator of this.DATE_SEPARATORS) {
                     if (dateString.includes(separator)) {
                         tokens = dateString.split(separator);
+                        if (tokens[2].length === 2) {
+                            tokens[2] = '20' + tokens[2];
+                        }
                     }
                 }
 
@@ -332,9 +343,6 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 let date: string;
                 if (tokens.length >= 3) {
                     const cur = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
-                    if (tokens[2].length === 2) {
-                        cur.setFullYear(cur.getFullYear() + 100);
-                    }
                     date = cur.toDateString();
                 }
                 let inOffice: string;
