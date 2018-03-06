@@ -12,6 +12,9 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\" />
+    <None Update="wwwroot\**\*">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

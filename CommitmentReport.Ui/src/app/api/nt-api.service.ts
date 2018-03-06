@@ -24,14 +24,14 @@ export class NtApiService {
   }
 
   getNtTeamMembers(): Observable<Array<NtTeamMember>> {
-    return this._http.get('api/TfsTask/team', ).map(team => {
+    return this._http.get('/api/TfsTask/team', ).map(team => {
       const ntTeamMembers: Array<NtTeamMember> = team.json() || [];
       return ntTeamMembers;
     });
   }
 
   getMyName(): Observable<WindowsUser> {
-    return this._http.get('api/TfsTask/my-name', ).map(name => {
+    return this._http.get('/api/TfsTask/my-name', ).map(name => {
       return name.json() || {};
     });
   }
