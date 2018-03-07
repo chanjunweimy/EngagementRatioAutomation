@@ -211,17 +211,18 @@ namespace CommitmentReport.Controllers
             
             var witClient = GetWitClient(collectionUri);
             var workHttpClient = GetWorkHttpClient(collectionUri);
-            var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, input.NtTeamMembers, witClient, out var workItemLinks);
+            var iterations = workHttpClient.GetTeamIterationsAsync(new TeamContext(teamProjectName)).Result;
+            var workItemQueryResult = GetWorkItemQueryResult(teamProjectName, endDate, startDate, input.NtTeamMembers, witClient, iterations, out var workItemLinks);
             if (!workItemLinks.Any())
             {
                 return new List<NtWorkItem>();
             }
-            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName, workHttpClient);
+            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName, iterations);
             return ntWorkItems;
         }
 
         private static List<NtWorkItem> GetNtWorkItems(WorkItemLink[] workItemLinks, WorkItemTrackingHttpClient witClient,
-            WorkItemQueryResult workItemQueryResult, string teamProjectName, WorkHttpClient workHttpClient)
+            WorkItemQueryResult workItemQueryResult, string teamProjectName, List<TeamSettingsIteration> iterations)
         {
             var fields = FIELDS;
             var allIds = new List<int>();
@@ -229,7 +230,6 @@ namespace CommitmentReport.Controllers
             var reverseIdDict = new Dictionary<int, bool>();
             var idDict = new Dictionary<int, int?>();
             var categoryDict = new Dictionary<int, string>();
-            var iterations = workHttpClient.GetTeamIterationsAsync(new TeamContext(teamProjectName)).Result;
             foreach (var workItemLink in workItemLinks)
             {
                 allIds.Add(workItemLink.Target.Id);
@@ -360,9 +360,13 @@ namespace CommitmentReport.Controllers
             return ntWorkItems;
         }
 
-        private static WorkItemQueryResult WorkItemQueryResult(string teamProjectName, DateTime endDate, DateTime startDate,
-            List<NtTeamMember> ntTeamMembers, WorkItemTrackingHttpClient witClient, out WorkItemLink[] workItemLinks)
+        private static WorkItemQueryResult GetWorkItemQueryResult(string teamProjectName, DateTime endDate, DateTime startDate,
+            List<NtTeamMember> ntTeamMembers, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, out WorkItemLink[] workItemLinks)
         {
+            var rangeIterations = iterations.Where(i =>
+                i.Attributes.StartDate?.CompareTo(startDate) >= 0 ||
+                i.Attributes.FinishDate?.CompareTo(endDate) <= 0).ToList();
+
             var query =
                 "Select [System.Id], [System.WorkItemType], [Microsoft.VSTS.Common.Activity], [System.Title], [System.AssignedTo], [System.State], [System.IterationPath], [Microsoft.VSTS.Common.ClosedDate], [System.AreaPath], [Nt.Duration] " +
                 "From WorkItemLinks " +
@@ -370,9 +374,25 @@ namespace CommitmentReport.Controllers
                 "' and Source.[System.State] <> 'Removed' and Source.[System.WorkItemType] <> 'Task') " +
                 "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') " +
                 "And (Target.[System.TeamProject] = '" + teamProjectName +
-                "' and Target.[System.State] = 'Done' and Target.[Microsoft.VSTS.Common.ClosedDate] <= '" +
+                "' and Target.[System.State] = 'Done' and ((Target.[Microsoft.VSTS.Common.ClosedDate] <= '" +
                 endDate.ToLongDateString() + "' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '" +
-                startDate.ToLongDateString() + "' and ";
+                startDate.ToLongDateString() + "' ) ";
+            if (rangeIterations.Count > 0)
+            {
+                query += " or ( ";
+                for (var i = 0; i < rangeIterations.Count; i++)
+                {
+                    var iteration = rangeIterations[i];
+                    query += " Target.[System.IterationPath] == '" + iteration.Path + "' ";
+
+                    if (i < rangeIterations.Count - 1)
+                    {
+                        query += " or ";
+                    }
+                }
+                query += " ) ";
+            }
+            query += ") and ";
 
             if (ntTeamMembers.Count > 0)
             {
