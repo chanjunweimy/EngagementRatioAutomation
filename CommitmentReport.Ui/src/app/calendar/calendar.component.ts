@@ -586,7 +586,10 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 return compareAsc(new Date(a.date), new Date(b.date));
             });
 
-            let start = new Date(startDate);
+            let start: Date = new Date(sortedCollapsedItems[0].date);
+            if (differenceInCalendarDays(startDate, sortedCollapsedItems[0].date) < 0) {
+                start = new Date(startDate);
+            }
             let durationDemonstration = 0;
             let durationDeployment = 0;
             let durationDesign = 0;
@@ -602,18 +605,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 const collapsedWorkItem = sortedCollapsedItems[i];
                 let target = new Date(collapsedWorkItem.date);
 
-                let diff = differenceInCalendarDays(start, target);
-                if (diff < 0) {
-                    diff *= -1;
-                }
+                const diff = differenceInCalendarDays(target, start);
                 if (i === sortedCollapsedItems.length - 1 && !isLastDayOfMonth(target)) {
                     target = lastDayOfMonth(target);
                 }
 
-                let diff2 = differenceInCalendarDays(start, target);
-                if (diff2 < 0) {
-                    diff2 *= -1;
-                }
+                const diff2 = differenceInCalendarDays(target, start);
 
                 const person = collapsedWorkItem.employee.replace(/ *<[^)]*> */g, '').trim();
                 for (let j = 0; j <= diff2; j++) {

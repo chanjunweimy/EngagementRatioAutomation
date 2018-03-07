@@ -364,8 +364,9 @@ namespace CommitmentReport.Controllers
             List<NtTeamMember> ntTeamMembers, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, out WorkItemLink[] workItemLinks)
         {
             var rangeIterations = iterations.Where(i =>
-                i.Attributes.StartDate?.CompareTo(startDate) >= 0 ||
-                i.Attributes.FinishDate?.CompareTo(endDate) <= 0).ToList();
+                i.Attributes.StartDate.HasValue && i.Attributes.FinishDate.HasValue &&
+                ((startDate.CompareTo(i.Attributes.StartDate) <= 0 && endDate.CompareTo(i.Attributes.StartDate) >= 0) ||
+                  startDate.CompareTo(i.Attributes.FinishDate) <= 0 && endDate.CompareTo(i.Attributes.FinishDate) >= 0)).ToList();
 
             var query =
                 "Select [System.Id], [System.WorkItemType], [Microsoft.VSTS.Common.Activity], [System.Title], [System.AssignedTo], [System.State], [System.IterationPath], [Microsoft.VSTS.Common.ClosedDate], [System.AreaPath], [Nt.Duration] " +
