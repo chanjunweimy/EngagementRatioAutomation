@@ -217,12 +217,12 @@ namespace CommitmentReport.Controllers
             {
                 return new List<NtWorkItem>();
             }
-            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName, iterations);
+            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName, iterations, startDate, endDate);
             return ntWorkItems;
         }
 
         private static List<NtWorkItem> GetNtWorkItems(WorkItemLink[] workItemLinks, WorkItemTrackingHttpClient witClient,
-            WorkItemQueryResult workItemQueryResult, string teamProjectName, List<TeamSettingsIteration> iterations)
+            WorkItemQueryResult workItemQueryResult, string teamProjectName, List<TeamSettingsIteration> iterations, DateTime starDate, DateTime endDate)
         {
             var fields = FIELDS;
             var allIds = new List<int>();
@@ -322,6 +322,7 @@ namespace CommitmentReport.Controllers
                             {
                                 closedDate = iteration.Attributes.FinishDate;
                             }
+
                             closedDateString = closedDate.Value.ToString("yyyy MMMM dd");
                         }
                     }
