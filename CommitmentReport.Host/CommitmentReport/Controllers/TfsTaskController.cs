@@ -7,6 +7,8 @@ using CommitmentReport.Controllers.dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.TeamFoundation.Common;
 using Microsoft.TeamFoundation.Core.WebApi;
+using Microsoft.TeamFoundation.Core.WebApi.Types;
+using Microsoft.TeamFoundation.Work.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
@@ -208,18 +210,18 @@ namespace CommitmentReport.Controllers
             var endDate = DateTime.Parse(input.End);
             
             var witClient = GetWitClient(collectionUri);
+            var workHttpClient = GetWorkHttpClient(collectionUri);
             var workItemQueryResult = WorkItemQueryResult(teamProjectName, endDate, startDate, input.NtTeamMembers, witClient, out var workItemLinks);
             if (!workItemLinks.Any())
             {
                 return new List<NtWorkItem>();
             }
-
-            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName);
+            var ntWorkItems = GetNtWorkItems(workItemLinks, witClient, workItemQueryResult, teamProjectName, workHttpClient);
             return ntWorkItems;
         }
 
         private static List<NtWorkItem> GetNtWorkItems(WorkItemLink[] workItemLinks, WorkItemTrackingHttpClient witClient,
-            WorkItemQueryResult workItemQueryResult, string teamProjectName)
+            WorkItemQueryResult workItemQueryResult, string teamProjectName, WorkHttpClient workHttpClient)
         {
             var fields = FIELDS;
             var allIds = new List<int>();
@@ -227,6 +229,7 @@ namespace CommitmentReport.Controllers
             var reverseIdDict = new Dictionary<int, bool>();
             var idDict = new Dictionary<int, int?>();
             var categoryDict = new Dictionary<int, string>();
+            var iterations = workHttpClient.GetTeamIterationsAsync(new TeamContext(teamProjectName)).Result;
             foreach (var workItemLink in workItemLinks)
             {
                 allIds.Add(workItemLink.Target.Id);
@@ -267,6 +270,7 @@ namespace CommitmentReport.Controllers
                 }
                 categoryDict[id] = categoryDict[refId];
             }
+
             var skip = 0;
             var take = 100;
 
@@ -293,16 +297,33 @@ namespace CommitmentReport.Controllers
                     var title = taskWorkItem.Fields["System.Title"].ToString();
                     var assignedTo = taskWorkItem.Fields["System.AssignedTo"].ToString();
                     var state = taskWorkItem.Fields["System.State"].ToString();
-                    string closedDate = null;
+                    string closedDateString = null;
+                    DateTime? closedDate = null;
                     if (taskWorkItem.Fields.ContainsKey("Microsoft.VSTS.Common.ClosedDate"))
                     {
-                        closedDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Common.ClosedDate"].ToString())
-                            .ToString("yyyy MMMM dd");
+                        closedDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Common.ClosedDate"].ToString());
+                        closedDateString = closedDate.Value.ToString("yyyy MMMM dd");
                     }
                     string iterationPath = null;
                     if (taskWorkItem.Fields.ContainsKey("System.IterationPath"))
                     {
                         iterationPath = taskWorkItem.Fields["System.IterationPath"].ToString();
+                        var iteration = iterations
+                            .FirstOrDefault(i => i.Path.Trim().Equals(iterationPath.Trim()));
+
+                        if (closedDate.HasValue && iteration?.Attributes.StartDate != null && iteration.Attributes.FinishDate.HasValue)
+                        {
+                            if (closedDate.Value.CompareTo(iteration.Attributes.StartDate) >= 0 &&
+                                closedDate.Value.CompareTo(iteration.Attributes.FinishDate) <= 0)
+                            {
+                                //correct case
+                            }
+                            else
+                            {
+                                closedDate = iteration.Attributes.FinishDate;
+                            }
+                            closedDateString = closedDate.Value.ToString("yyyy MMMM dd");
+                        }
                     }
                     string areaPath = null;
                     if (taskWorkItem.Fields.ContainsKey("System.AreaPath"))
@@ -325,7 +346,7 @@ namespace CommitmentReport.Controllers
                         AssignedTo = assignedTo,
                         State = state,
                         IterationPath = iterationPath,
-                        ClosedDate = closedDate,
+                        ClosedDate = closedDateString,
                         AreaPath = areaPath,
                         Duration = duration,
                         Product = product,
@@ -351,16 +372,29 @@ namespace CommitmentReport.Controllers
                 "And (Target.[System.TeamProject] = '" + teamProjectName +
                 "' and Target.[System.State] = 'Done' and Target.[Microsoft.VSTS.Common.ClosedDate] <= '" +
                 endDate.ToLongDateString() + "' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '" +
-                startDate.ToLongDateString() + "' and ( ";
-            for (var i = 0; i < ntTeamMembers.Count; i++)
+                startDate.ToLongDateString() + "' and ";
+
+            if (ntTeamMembers.Count > 0)
             {
-                query += " Target.[System.AssignedTo] = '" + ntTeamMembers[i].UniqueName + "' ";
-                if (i < ntTeamMembers.Count - 1)
+                query += " ( ";
+
+                for (var i = 0; i < ntTeamMembers.Count; i++)
                 {
-                    query += " or ";
+                    query += " Target.[System.AssignedTo] = '" + ntTeamMembers[i].UniqueName + "' ";
+                    if (i < ntTeamMembers.Count - 1)
+                    {
+                        query += " or ";
+                    }
                 }
+
+                query += " ) and ";
             }
-            query += " ) and Target.[System.WorkItemType] = 'Task') " +
+            else
+            {
+                query += " Target.[System.AssignedTo] = '' and ";
+            }
+
+            query += " Target.[System.WorkItemType] = 'Task') " +
                 "Order By [System.Id] mode (Recursive, ReturnMatchingChildren) ";
 
             //create a wiql object and build our query
@@ -382,6 +416,14 @@ namespace CommitmentReport.Controllers
             var connection = new VssConnection(new Uri(collectionUri), new VssCredentials(new WindowsCredential(true)));
             // Create instance of WorkItemTrackingHttpClient using VssConnection
             return connection.GetClient<WorkItemTrackingHttpClient>();
+        }
+
+        private static WorkHttpClient GetWorkHttpClient(string collectionUri)
+        {
+            // Create instance of VssConnection using Windows credentials (NTLM)
+            var connection = new VssConnection(new Uri(collectionUri), new VssCredentials(new WindowsCredential(true)));
+            // Create instance of WorkItemTrackingHttpClient using VssConnection
+            return connection.GetClient<WorkHttpClient>();
         }
     }
 }

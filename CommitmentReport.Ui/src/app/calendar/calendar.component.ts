@@ -458,10 +458,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     }
 
     updateEvents(workItems: NtWorkItem[]) {
+        this.events.length = 0;
         if (workItems.length === 0) {
+            this.refresh.next();
             return;
         }
-        this.events.length = 0;
+
         this.workItemDict = {};
         for (const workItem of workItems) {
             const id = workItem.teamProject.replace(/ /g, '') + '-' + workItem.id + ' ' + workItem.title;
