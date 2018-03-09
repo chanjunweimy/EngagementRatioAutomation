@@ -53,6 +53,11 @@ const colors: any = {
     }
 };
 
+enum ExcelType {
+    daily = 1,
+    weekly = 2
+}
+
 @Component({
     selector: 'app-calendar-component',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -119,9 +124,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
     EXCEL_HEADER_1 = ['', '', '', '', '', 'Duration', '', '', '', '', '', '', '', '', '', '', ''];
 
-    EXCEL_HEADER_2 = ['Employee', 'Date', 'Remark', 'Hours Engaged', 'Title', /*'Demonstration'*/, 'Deployment', 'Design',
-                    'Development', 'Documentation', 'Marketing', 'Requirements', 'Testing', 'Others',
-                    'N/A', 'Total', 'Mismatch'];
+    EXCEL_HEADER_2 = ['Employee', 'Date', 'Remark', 'Hours Engaged', 'Title', /*'Demonstration',*/ 'Deployment', 'Design',
+                    'Development', 'Documentation', 'Marketing', 'Requirements', 'Testing', 'Others', 'N/A', 'Total', 'Mismatch'];
 
     EXCEL_HEADER_DICT = {
         EMPLOYEE: 0,
@@ -289,7 +293,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         this.getViewWorkItem();
     }
 
-    exportToCsv(): void {
+    exportToCsv(type: ExcelType): void {
         this.modalData = { title: 'Exporting...' };
         const ref = this._modal.open(this.modalContent, { size: 'sm',
                                                           windowClass: 'transparent-image',
@@ -298,10 +302,23 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         const ntTeamMembers = this.getSelectedNtTeamMembers();
         this._apiService.getCollapsedWorkItemsByNtTeamMembers(this.startDate.toDateString(), this.endDate.toDateString(), ntTeamMembers)
             .subscribe(collapsedWorkItems => {
-                this.createExcel(collapsedWorkItems, this.startDate, this.endDate);
+                if (type === ExcelType.daily) {
+                    this.createDailyExcel(collapsedWorkItems, this.startDate, this.endDate);
+                } else if (type === ExcelType.weekly) {
+
+                }
+
                 ref.close();
                 this._changeDetectorRef.detectChanges();
             });
+    }
+
+    exportToDailyCsv(): void {
+        this.exportToCsv(ExcelType.daily);
+    }
+
+    exportToWeeklyCsv(): void {
+        this.exportToCsv(ExcelType.weekly);
     }
 
     onFileChange(evt: any) {
@@ -554,7 +571,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         }
     }
 
-    createExcel(collapsedWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date): void {
+    createDailyExcel(collapsedWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date): void {
         /* generate workbook and add the worksheet */
         const wb: XLSX.WorkBook = XLSX.utils.book_new();
 
@@ -603,6 +620,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             if (differenceInCalendarDays(startDate, sortedCollapsedItems[0].date) < 0) {
                 start = new Date(startDate);
             }
+
+            let monthlyMismatch = 0;
             // let durationDemonstration = 0;
             let durationDeployment = 0;
             let durationDesign = 0;
@@ -643,7 +662,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             remarks,
                             engagedHour,
                             '',
-                            0,
+                            // 0,
                             0,
                             0,
                             0,
@@ -656,6 +675,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             0,
                             engagedHour
                         ];
+                        monthlyMismatch += engagedHour;
                         sheets[employee].push(dummyRow);
                     } else {
                         let engagedHour = 0;
@@ -697,11 +717,13 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         durationTesting += collapsedWorkItem.durationTesting;
                         durationOthers += collapsedWorkItem.durationOthers;
                         durationNA += collapsedWorkItem.durationNA;
+                        monthlyMismatch += engagedHour - collapsedWorkItem.durationTotal;
 
-                        for (const productName in collapsedWorkItem.product) {
+                        for (let productName in collapsedWorkItem.product) {
                             if (!collapsedWorkItem.product.hasOwnProperty(productName)) {
                                 continue;
                             }
+                            productName = productName.trim();
                             if (!durationProduct.hasOwnProperty(productName)) {
                                 durationProduct[productName] = 0;
                             }
@@ -724,6 +746,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         sheets[employee][index].push(header2[headerDict.DURATION_TESTING]);
                         sheets[employee][index].push(header2[headerDict.DURATION_OTHERS]);
                         sheets[employee][index].push(header2[headerDict.DURATION_NA]);
+                        sheets[employee][index].push(header2[headerDict.MISMATCH]);
 
                         index = sheets[employee].length - 1;
                         // sheets[employee][index].push(durationDemonstration);
@@ -736,6 +759,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         sheets[employee][index].push(durationTesting);
                         sheets[employee][index].push(durationOthers);
                         sheets[employee][index].push(durationNA);
+                        sheets[employee][index].push(monthlyMismatch);
 
                         // durationDemonstration = 0;
                         durationDeployment = 0;
@@ -747,6 +771,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         durationTesting = 0;
                         durationOthers = 0;
                         durationNA = 0;
+                        monthlyMismatch = 0;
 
                         // product
                         index = sheets[employee].length - 4;

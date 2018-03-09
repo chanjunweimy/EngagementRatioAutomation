@@ -121,6 +121,12 @@ namespace CommitmentReport.Controllers
                     duration = workItem.Duration.Value;
                 }
 
+                var isMisc = workItem.Product.ToUpper().Equals("MISC");
+                if (!collapsedWorkItems[workItem.AssignedTo][itemIndex].Product.ContainsKey(workItem.Product) && !isMisc)
+                {
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] = 0;
+                }
+
                 collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationTotal += duration;
                 if (workItem.Activity.Equals(string.Empty))
                 {
@@ -133,18 +139,34 @@ namespace CommitmentReport.Controllers
                 }
                 else if (workItem.Activity.Equals("deployment"))
                 {
+                    if (!isMisc)
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
                     collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
                 }
                 else if (workItem.Activity.Equals("design"))
                 {
+                    if (!isMisc)
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
                     collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
                 }
                 else if (workItem.Activity.Equals("development"))
                 {
+                    if (!isMisc)
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
                     collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
                 }
                 else if (workItem.Activity.Equals("documentation"))
                 {
+                    if (!isMisc)
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
                     collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
                 }
                 else if (workItem.Activity.Equals("marketing"))
@@ -168,12 +190,6 @@ namespace CommitmentReport.Controllers
                 {
                     continue;
                 }
-
-                if (!collapsedWorkItems[workItem.AssignedTo][itemIndex].Product.ContainsKey(workItem.Product))
-                {
-                    collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] = 0;
-                }
-                collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
             }
             return collapsedWorkItems;
         }
