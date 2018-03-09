@@ -21,7 +21,10 @@ import {
     differenceInCalendarDays,
     lastDayOfMonth,
     parse,
-    startOfWeek
+    startOfWeek,
+    isWeekend,
+    isSaturday,
+    isSunday
 } from 'date-fns';
 import { Subject } from 'rxjs/Subject';
 import { NgbModal, NgbDateStruct } from '@ng-bootstrap/ng-bootstrap';
@@ -222,6 +225,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                                 engagedHour: number
                             }}} = {};
 
+    justLoginLeaveDict: {[id: string]:
+                            {[id: string]: {
+                                curMonthLeave: number,
+                                nextMonthLeave: number
+                                    }}} = {};
+
     DAY_CONSTS = {
         MONDAY: 0,
         TUESDAY: 1,
@@ -390,6 +399,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             }
             this.justLoginDict = {};
             this.justLoginWeekDict = {};
+            this.justLoginLeaveDict = {};
             for (let i = 1; i < data.length; i++) {
                 const dateString: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.DATE]].trim();
                 let tokens: string[] = [];
@@ -413,6 +423,17 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     date = cur.toDateString();
                 }
 
+                if (!this.justLoginLeaveDict.hasOwnProperty(employee)) {
+                    this.justLoginLeaveDict[employee] = {};
+                }
+
+                if (!this.justLoginLeaveDict[employee].hasOwnProperty(weekStartDate.toDateString())) {
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()] = {
+                        curMonthLeave: 0,
+                        nextMonthLeave: 0
+                    };
+                }
+
                 let inOffice: string;
                 if (data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]].trim() === '-') {
                     inOffice = undefined;
@@ -425,8 +446,18 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 let engagedHour = +data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]];
                 if (!inOffice) {
                     engagedHour = 0;
+                    if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
+                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 1;
+                    } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
+                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 1;
+                    }
                 } else if (remarks && (remarks.toLowerCase().includes('annual') || remarks.toLowerCase().includes('sick'))) {
                     engagedHour -= 4;
+                    if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
+                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 0.5;
+                    } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
+                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 0.5;
+                    }
                 }
 
                 if (!this.justLoginDict.hasOwnProperty(employee)) {
@@ -456,7 +487,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     };
                 } else {
                     this.justLoginWeekDict[employee][weekStartDateString].engagedHour += engagedHour;
-                    if (this.justLoginWeekDict[employee][weekStartDateString].remarks !== '') {
+                    if (this.justLoginWeekDict[employee][weekStartDateString].remarks !== '' && remarks !== '') {
                         this.justLoginWeekDict[employee][weekStartDateString].remarks += ', ' + remarks;
                     } else {
                         this.justLoginWeekDict[employee][weekStartDateString].remarks += remarks;
@@ -468,7 +499,6 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     }
 
     collapse() {
-        console.log(this.isCollapse);
         // this.isCollapse = true;
         this.getViewWorkItem();
     }
@@ -968,14 +998,28 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     let monthRatio = 1;
                     let nextMonthRatio = 0;
                     if (isWeekCrossMonth) {
-                        const workingDay = 5;
-                        let day: Date = addDays(start, 1);
-                        while (isSameMonth(day, start)) {
-                            day = addDays(day, 1);
+                        let curMonthLeave = 0;
+                        let nextMonthLeave = 0;
+                        const startString = start.toDateString();
+                        if (this.justLoginLeaveDict.hasOwnProperty(employee) &&
+                            this.justLoginLeaveDict[employee].hasOwnProperty(startString)) {
+                            curMonthLeave = this.justLoginLeaveDict[employee][startString].curMonthLeave;
+                            nextMonthLeave = this.justLoginLeaveDict[employee][startString].nextMonthLeave;
                         }
-                        const weekDiff = differenceInCalendarDays(day, start);
-                        monthRatio = weekDiff / workingDay;
-                        nextMonthRatio = 1 - monthRatio;
+                        const workingDay = 5 - curMonthLeave - nextMonthLeave;
+                        if (workingDay !== 0) {
+                            let day: Date = addDays(start, 1);
+                            while (isSameMonth(day, start)) {
+                                day = addDays(day, 1);
+                            }
+                            let weekDiff = differenceInCalendarDays(day, start);
+                            weekDiff -= curMonthLeave;
+                            monthRatio = weekDiff / workingDay;
+                            nextMonthRatio = 1 - monthRatio;
+                        } else {
+                            monthRatio = 0;
+                            nextMonthRatio = 0;
+                        }
                     }
 
                     let engagedHour = 0;
