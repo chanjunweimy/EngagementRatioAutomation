@@ -66,7 +66,7 @@ export class NtCollapsedWorkItem {
   employee: string;
   date: string;
   title: string;
-  durationDemonstration: number;
+  // durationDemonstration: number;
   durationDeployment: number;
   durationDesign: number;
   durationDevelopment: number;

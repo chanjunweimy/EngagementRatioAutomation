@@ -86,7 +86,7 @@ namespace CommitmentReport.Controllers
                         Employee = workItem.AssignedTo,
                         Date = workItem.ClosedDate,
                         Title = workItem.Title,
-                        DurationDemonstration = 0,
+                        //DurationDemonstration = 0,
                         DurationDeployment = 0,
                         DurationDesign = 0,
                         DurationDevelopment = 0,
@@ -128,7 +128,8 @@ namespace CommitmentReport.Controllers
                 }
                 else if (workItem.Activity.Equals("demonstration"))
                 {
-                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDemonstration += duration;
+                    //collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDemonstration += duration;
+                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationMarketing += duration;
                 }
                 else if (workItem.Activity.Equals("deployment"))
                 {

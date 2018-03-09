@@ -10,7 +10,7 @@ namespace CommitmentReport.Controllers.dto
         
         public string Title { get; set; }
 
-        public double DurationDemonstration { get; set; }
+        //public double DurationDemonstration { get; set; }
 
         public double DurationDeployment { get; set; }
 

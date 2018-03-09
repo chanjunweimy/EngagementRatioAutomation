@@ -119,7 +119,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
     EXCEL_HEADER_1 = ['', '', '', '', '', 'Duration', '', '', '', '', '', '', '', '', '', '', ''];
 
-    EXCEL_HEADER_2 = ['Employee', 'Date', 'Remark', 'Hours Engaged', 'Title', 'Demonstration', 'Deployment', 'Design',
+    EXCEL_HEADER_2 = ['Employee', 'Date', 'Remark', 'Hours Engaged', 'Title', /*'Demonstration'*/, 'Deployment', 'Design',
                     'Development', 'Documentation', 'Marketing', 'Requirements', 'Testing', 'Others',
                     'N/A', 'Total', 'Mismatch'];
 
@@ -129,6 +129,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         REMARK: 2,
         EH: 3,
         TITLE: 4,
+        /*
         DURATION_DEMONSTRATION: 5,
         DURATION_DEPLOYMENT: 6,
         DURATION_DESIGN: 7,
@@ -141,6 +142,18 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         DURATION_NA: 14,
         DURATION_TOTAL: 15,
         MISMATCH: 16
+        */
+        DURATION_DEPLOYMENT: 5,
+        DURATION_DESIGN: 6,
+        DURATION_DEVELOPMENT: 7,
+        DURATION_DOCUMENTATION: 8,
+        DURATION_MARKETING: 9,
+        DURATION_REQUIREMENTS: 10,
+        DURATION_TESTING: 11,
+        DURATION_OTHERS: 12,
+        DURATION_NA: 13,
+        DURATION_TOTAL: 14,
+        MISMATCH: 15
     };
 
     // JustLogin
@@ -590,7 +603,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             if (differenceInCalendarDays(startDate, sortedCollapsedItems[0].date) < 0) {
                 start = new Date(startDate);
             }
-            let durationDemonstration = 0;
+            // let durationDemonstration = 0;
             let durationDeployment = 0;
             let durationDesign = 0;
             let durationDevelopment = 0;
@@ -660,7 +673,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             remarks,
                             engagedHour,
                             collapsedWorkItem.title,
-                            collapsedWorkItem.durationDemonstration,
+                            // collapsedWorkItem.durationDemonstration,
                             collapsedWorkItem.durationDeployment,
                             collapsedWorkItem.durationDesign,
                             collapsedWorkItem.durationDevelopment,
@@ -674,7 +687,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             engagedHour - collapsedWorkItem.durationTotal
                         ];
 
-                        durationDemonstration += collapsedWorkItem.durationDemonstration;
+                        // durationDemonstration += collapsedWorkItem.durationDemonstration;
                         durationDeployment += collapsedWorkItem.durationDeployment;
                         durationDesign += collapsedWorkItem.durationDesign;
                         durationDevelopment += collapsedWorkItem.durationDevelopment;
@@ -701,7 +714,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     if (isLastDayOfMonth(start)) {
                         // duration
                         let index = sheets[employee].length - 2;
-                        sheets[employee][index].push(header2[headerDict.DURATION_DEMONSTRATION]);
+                        // sheets[employee][index].push(header2[headerDict.DURATION_DEMONSTRATION]);
                         sheets[employee][index].push(header2[headerDict.DURATION_DEPLOYMENT]);
                         sheets[employee][index].push(header2[headerDict.DURATION_DESIGN]);
                         sheets[employee][index].push(header2[headerDict.DURATION_DEVELOPMENT]);
@@ -713,7 +726,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         sheets[employee][index].push(header2[headerDict.DURATION_NA]);
 
                         index = sheets[employee].length - 1;
-                        sheets[employee][index].push(durationDemonstration);
+                        // sheets[employee][index].push(durationDemonstration);
                         sheets[employee][index].push(durationDeployment);
                         sheets[employee][index].push(durationDesign);
                         sheets[employee][index].push(durationDevelopment);
@@ -724,7 +737,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         sheets[employee][index].push(durationOthers);
                         sheets[employee][index].push(durationNA);
 
-                        durationDemonstration = 0;
+                        // durationDemonstration = 0;
                         durationDeployment = 0;
                         durationDesign = 0;
                         durationDevelopment = 0;
