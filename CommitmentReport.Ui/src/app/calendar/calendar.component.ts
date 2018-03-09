@@ -20,7 +20,8 @@ import {
     compareAsc,
     differenceInCalendarDays,
     lastDayOfMonth,
-    parse
+    parse,
+    startOfWeek
 } from 'date-fns';
 import { Subject } from 'rxjs/Subject';
 import { NgbModal, NgbDateStruct } from '@ng-bootstrap/ng-bootstrap';
@@ -32,7 +33,7 @@ import {
 } from 'angular-calendar';
 import { forkJoin } from 'rxjs/observable/forkJoin';
 
-import { NtApiService, NtWorkItem, NtTeamMember, NtCollapsedWorkItem } from '../api/nt-api.service';
+import { NtApiService, NtWorkItem, NtTeamMember, NtCollapsedWorkItem, NtWeeklyWorkItem } from '../api/nt-api.service';
 
 import * as XLSX from 'xlsx';
 
@@ -160,6 +161,31 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         MISMATCH: 15
     };
 
+    EXCEL_WEEK_HEADER_1 = ['', '', '', '', '', '', 'Duration', '', '', '', '', '', '', '', '', '', '', ''];
+
+    EXCEL_WEEK_HEADER_2 = ['Employee', 'Week StartDate', 'Week EndDate', 'Remark', 'Hours Engaged', 'Title', 'Deployment', 'Design',
+                    'Development', 'Documentation', 'Marketing', 'Requirements', 'Testing', 'Others', 'N/A', 'Total', 'Mismatch'];
+
+    EXCEL_WEEK_HEADER_DICT = {
+        EMPLOYEE: 0,
+        WEEK_STARTDATE: 1,
+        WEEK_ENDDATE: 2,
+        REMARK: 3,
+        EH: 4,
+        TITLE: 5,
+        DURATION_DEPLOYMENT: 6,
+        DURATION_DESIGN: 7,
+        DURATION_DEVELOPMENT: 8,
+        DURATION_DOCUMENTATION: 9,
+        DURATION_MARKETING: 10,
+        DURATION_REQUIREMENTS: 11,
+        DURATION_TESTING: 12,
+        DURATION_OTHERS: 13,
+        DURATION_NA: 14,
+        DURATION_TOTAL: 15,
+        MISMATCH: 16
+    };
+
     // JustLogin
     JUSTLOGIN_HEADER_DICT = {
         EMPLOYEE: 'Employee',
@@ -189,6 +215,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             remarks: string,
                             engagedHour: number
                         }}} = {};
+
+    justLoginWeekDict: {[id: string]:
+                            {[id: string]: {
+                                remarks: string,
+                                engagedHour: number
+                            }}} = {};
 
     DAY_CONSTS = {
         MONDAY: 0,
@@ -293,8 +325,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         this.getViewWorkItem();
     }
 
-    exportToCsv(type: ExcelType): void {
-        this.modalData = { title: 'Exporting...' };
+    exportToDailyCsv(): void {
+        this.modalData = { title: 'Exporting According to Daily Tasks...' };
         const ref = this._modal.open(this.modalContent, { size: 'sm',
                                                           windowClass: 'transparent-image',
                                                           backdrop: 'static',
@@ -302,23 +334,25 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         const ntTeamMembers = this.getSelectedNtTeamMembers();
         this._apiService.getCollapsedWorkItemsByNtTeamMembers(this.startDate.toDateString(), this.endDate.toDateString(), ntTeamMembers)
             .subscribe(collapsedWorkItems => {
-                if (type === ExcelType.daily) {
-                    this.createDailyExcel(collapsedWorkItems, this.startDate, this.endDate);
-                } else if (type === ExcelType.weekly) {
-
-                }
-
+                this.createDailyExcel(collapsedWorkItems, this.startDate, this.endDate);
                 ref.close();
                 this._changeDetectorRef.detectChanges();
             });
     }
 
-    exportToDailyCsv(): void {
-        this.exportToCsv(ExcelType.daily);
-    }
-
     exportToWeeklyCsv(): void {
-        this.exportToCsv(ExcelType.weekly);
+        this.modalData = { title: 'Exporting According to Weekly Tasks...' };
+        const ref = this._modal.open(this.modalContent, { size: 'sm',
+                                                          windowClass: 'transparent-image',
+                                                          backdrop: 'static',
+                                                          keyboard: false });
+        const ntTeamMembers = this.getSelectedNtTeamMembers();
+        this._apiService.getWeeklyWorkItemsByNtTeamMembers(this.startDate.toDateString(), this.endDate.toDateString(), ntTeamMembers)
+            .subscribe(weeklyWorkItems => {
+                this.createWeeklyExcel(weeklyWorkItems, this.startDate, this.endDate);
+                ref.close();
+                this._changeDetectorRef.detectChanges();
+            });
     }
 
     onFileChange(evt: any) {
@@ -355,6 +389,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 headerDict[title] = i;
             }
             this.justLoginDict = {};
+            this.justLoginWeekDict = {};
             for (let i = 1; i < data.length; i++) {
                 const dateString: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.DATE]].trim();
                 let tokens: string[] = [];
@@ -371,10 +406,13 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 employee = this.JUSTLOGIN_NAME_DICT[employee];
 
                 let date: string;
+                let weekStartDate: Date = new Date();
                 if (tokens.length >= 3) {
                     const cur = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
+                    weekStartDate = startOfWeek(cur, {weekStartsOn: 1});
                     date = cur.toDateString();
                 }
+
                 let inOffice: string;
                 if (data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]].trim() === '-') {
                     inOffice = undefined;
@@ -382,7 +420,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     inOffice = new Date(date + ' '
                                 + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]]).toTimeString();
                 }
-                const remarks: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.REMARKS]];
+                let remarks: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.REMARKS]];
 
                 let engagedHour = +data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]];
                 if (!inOffice) {
@@ -400,8 +438,31 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     engagedHour: engagedHour,
                     remarks: remarks
                 };
+
+                if (!this.justLoginWeekDict.hasOwnProperty(employee)) {
+                    this.justLoginWeekDict[employee] = {};
+                }
+
+                const weekStartDateString = weekStartDate.toDateString();
+                if (!remarks) {
+                    remarks = '';
+                } else {
+                    remarks = remarks + ' ( ' + date + ' ) ';
+                }
+                if (!this.justLoginWeekDict[employee].hasOwnProperty(weekStartDateString)) {
+                    this.justLoginWeekDict[employee][weekStartDateString] = {
+                        engagedHour: engagedHour,
+                        remarks: remarks
+                    };
+                } else {
+                    this.justLoginWeekDict[employee][weekStartDateString].engagedHour += engagedHour;
+                    if (this.justLoginWeekDict[employee][weekStartDateString].remarks !== '') {
+                        this.justLoginWeekDict[employee][weekStartDateString].remarks += ', ' + remarks;
+                    } else {
+                        this.justLoginWeekDict[employee][weekStartDateString].remarks += remarks;
+                    }
+                }
             }
-            console.log(this.justLoginDict);
         };
         reader.readAsBinaryString(target.files[0]);
     }
@@ -575,7 +636,9 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         /* generate workbook and add the worksheet */
         const wb: XLSX.WorkBook = XLSX.utils.book_new();
 
-        const sheets = this.initExcelSheets(collapsedWorkItems, startDate, endDate);
+        let sheets: { [id: string]: any[]} = {};
+        sheets = this.initDailyExcelSheets(collapsedWorkItems, startDate, endDate);
+
         for (const employee in sheets) {
             if (sheets.hasOwnProperty(employee)) {
                 const excelData: AOA = sheets[employee];
@@ -596,7 +659,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         XLSX.writeFile(wb, this.excelFileName);
     }
 
-    initExcelSheets(collapseWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date): { [id: string]: any[]} {
+    initDailyExcelSheets(collapseWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date):
+                        { [id: string]: any[]} {
         const sheets: { [id: string]: any[]} = {};
         const header1 = this.EXCEL_HEADER_1;
         const header2 = this.EXCEL_HEADER_2;
@@ -786,6 +850,285 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     }
                     start = addDays(start, 1);
                 }
+            }
+        }
+        return sheets;
+    }
+
+    createWeeklyExcel(weeklyWorkItems: { [id: string]: NtWeeklyWorkItem[]}, startDate: Date, endDate: Date): void {
+        /* generate workbook and add the worksheet */
+        const wb: XLSX.WorkBook = XLSX.utils.book_new();
+
+        let sheets: { [id: string]: any[]} = {};
+        sheets = this.initWeeklyExcelSheets(weeklyWorkItems, startDate, endDate);
+
+        for (const employee in sheets) {
+            if (sheets.hasOwnProperty(employee)) {
+                const excelData: AOA = sheets[employee];
+
+                /* generate worksheet */
+                const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(excelData);
+
+                let sheetName = employee.replace(/ *<[^)]*> */g, '');
+                sheetName = sheetName.replace(/ /g, '');
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
+        }
+
+        /* save to file */
+        if (!this.excelFileName.toLowerCase().endsWith(this.EXCEL_EXT.toLowerCase())) {
+            this.excelFileName += this.EXCEL_EXT;
+        }
+        XLSX.writeFile(wb, this.excelFileName);
+    }
+
+    initWeeklyExcelSheets(weeklyWorkItems: { [id: string]: NtWeeklyWorkItem[]}, startDate: Date, endDate: Date):
+                        { [id: string]: any[]} {
+        const sheets: { [id: string]: any[]} = {};
+        const header1 = this.EXCEL_WEEK_HEADER_1;
+        const header2 = this.EXCEL_WEEK_HEADER_2;
+        const weekHeaderDict = this.EXCEL_WEEK_HEADER_DICT;
+
+        for (const employee in weeklyWorkItems) {
+            if (!weeklyWorkItems.hasOwnProperty(employee)) {
+                continue;
+            }
+            sheets[employee] = [];
+            sheets[employee].push(header1);
+            sheets[employee].push(header2);
+
+            const sortedWeeklyItems = weeklyWorkItems[employee].sort((a, b) => {
+                return compareAsc(new Date(a.weekStartDate), new Date(b.weekStartDate));
+            });
+
+            let start: Date = new Date(sortedWeeklyItems[0].weekStartDate);
+            if (differenceInCalendarDays(startDate, sortedWeeklyItems[0].weekStartDate) < 0) {
+                start = startOfWeek(startDate, {weekStartsOn: 1});
+            }
+
+            const durationMonth: {[id: string]: {
+                monthlyMismatch: number,
+                durationDeployment: number,
+                durationDesign: number,
+                durationDevelopment: number,
+                durationDocumentation: number,
+                durationMarketing: number,
+                durationRequirements: number,
+                durationTesting: number,
+                durationOthers: number,
+                durationNA: number,
+                durationProduct: {[id: string]: number}
+            }} = {};
+            for (let i = 0; i < sortedWeeklyItems.length; i++) {
+                const sortedWeekItem = sortedWeeklyItems[i];
+                const target = new Date(sortedWeekItem.weekStartDate);
+
+                const diff = differenceInCalendarDays(target, start);
+
+                const person = sortedWeekItem.employee.replace(/ *<[^)]*> */g, '').trim();
+                for (let j = 0; j <= diff; j += 7) {
+                    const friday = addDays(start, 4);
+                    const isWeekCrossMonth = !isSameMonth(start, friday);
+                    const isLastWeekItem = (j === diff && i === sortedWeeklyItems.length - 1);
+
+                    const yearMonthKey: string = start.getFullYear() + '-' + (start.getMonth() + 1);
+                    const nextYearMonthKey: string = start.getFullYear() + '-' + (start.getMonth() + 2);
+                    if (!durationMonth.hasOwnProperty(yearMonthKey)) {
+                        durationMonth[yearMonthKey] = {
+                            monthlyMismatch: 0,
+                            durationDeployment: 0,
+                            durationDesign: 0,
+                            durationDevelopment: 0,
+                            durationDocumentation: 0,
+                            durationMarketing: 0,
+                            durationRequirements: 0,
+                            durationTesting: 0,
+                            durationOthers: 0,
+                            durationNA: 0,
+                            durationProduct: {}
+                        };
+                    }
+
+                    if (!durationMonth.hasOwnProperty(nextYearMonthKey)) {
+                        durationMonth[nextYearMonthKey] = {
+                            monthlyMismatch: 0,
+                            durationDeployment: 0,
+                            durationDesign: 0,
+                            durationDevelopment: 0,
+                            durationDocumentation: 0,
+                            durationMarketing: 0,
+                            durationRequirements: 0,
+                            durationTesting: 0,
+                            durationOthers: 0,
+                            durationNA: 0,
+                            durationProduct: {}
+                        };
+                    }
+
+                    let monthRatio = 1;
+                    let nextMonthRatio = 0;
+                    if (isWeekCrossMonth) {
+                        const workingDay = 5;
+                        let day: Date = addDays(start, 1);
+                        while (isSameMonth(day, start)) {
+                            day = addDays(day, 1);
+                        }
+                        const weekDiff = differenceInCalendarDays(day, start);
+                        monthRatio = weekDiff / workingDay;
+                        nextMonthRatio = 1 - monthRatio;
+                    }
+
+                    let engagedHour = 0;
+                    let remarks = '';
+                    const dateString = start.toDateString();
+                    if (this.justLoginWeekDict.hasOwnProperty(person) && this.justLoginWeekDict[person].hasOwnProperty(dateString)) {
+                        engagedHour = this.justLoginWeekDict[person][dateString].engagedHour;
+                        if (this.justLoginWeekDict[person][dateString].remarks) {
+                            remarks = this.justLoginWeekDict[person][dateString].remarks;
+                        }
+                    }
+
+                    if (j !== diff) {
+                        const dummyRow = [
+                            sortedWeekItem.employee,
+                            start.toDateString(),
+                            friday.toDateString(),
+                            remarks,
+                            engagedHour,
+                            '',
+                            // 0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            engagedHour
+                        ];
+                        durationMonth[yearMonthKey].monthlyMismatch += engagedHour * monthRatio;
+                        durationMonth[nextYearMonthKey].monthlyMismatch += engagedHour * nextMonthRatio;
+                        sheets[employee].push(dummyRow);
+                    } else {
+                        const row = [
+                            sortedWeekItem.employee,
+                            start.toDateString(),
+                            friday.toDateString(),
+                            remarks,
+                            engagedHour,
+                            sortedWeekItem.title,
+                            // collapsedWorkItem.durationDemonstration,
+                            sortedWeekItem.durationDeployment,
+                            sortedWeekItem.durationDesign,
+                            sortedWeekItem.durationDevelopment,
+                            sortedWeekItem.durationDocumentation,
+                            sortedWeekItem.durationMarketing,
+                            sortedWeekItem.durationRequirements,
+                            sortedWeekItem.durationTesting,
+                            sortedWeekItem.durationOthers,
+                            sortedWeekItem.durationNA,
+                            sortedWeekItem.durationTotal,
+                            engagedHour - sortedWeekItem.durationTotal
+                        ];
+
+                        // durationDemonstration += collapsedWorkItem.durationDemonstration;
+                        durationMonth[yearMonthKey].durationDeployment += sortedWeekItem.durationDeployment * monthRatio;
+                        durationMonth[yearMonthKey].durationDesign += sortedWeekItem.durationDesign * monthRatio;
+                        durationMonth[yearMonthKey].durationDevelopment += sortedWeekItem.durationDevelopment * monthRatio;
+                        durationMonth[yearMonthKey].durationDocumentation += sortedWeekItem.durationDocumentation * monthRatio;
+                        durationMonth[yearMonthKey].durationMarketing += sortedWeekItem.durationMarketing * monthRatio;
+                        durationMonth[yearMonthKey].durationRequirements += sortedWeekItem.durationRequirements * monthRatio;
+                        durationMonth[yearMonthKey].durationTesting += sortedWeekItem.durationTesting * monthRatio;
+                        durationMonth[yearMonthKey].durationOthers += sortedWeekItem.durationOthers * monthRatio;
+                        durationMonth[yearMonthKey].durationNA += sortedWeekItem.durationNA * monthRatio;
+                        durationMonth[yearMonthKey].monthlyMismatch += (engagedHour - sortedWeekItem.durationTotal) * monthRatio;
+
+                        durationMonth[nextYearMonthKey].durationDeployment += sortedWeekItem.durationDeployment * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationDesign += sortedWeekItem.durationDesign * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationDevelopment += sortedWeekItem.durationDevelopment * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationDocumentation += sortedWeekItem.durationDocumentation * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationMarketing += sortedWeekItem.durationMarketing * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationRequirements += sortedWeekItem.durationRequirements * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationTesting += sortedWeekItem.durationTesting * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationOthers += sortedWeekItem.durationOthers * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].durationNA += sortedWeekItem.durationNA * nextMonthRatio;
+                        durationMonth[nextYearMonthKey].monthlyMismatch += (engagedHour - sortedWeekItem.durationTotal) * nextMonthRatio;
+
+                        for (let productName in sortedWeekItem.product) {
+                            if (!sortedWeekItem.product.hasOwnProperty(productName)) {
+                                continue;
+                            }
+                            productName = productName.trim();
+                            if (!durationMonth[yearMonthKey].durationProduct.hasOwnProperty(productName)) {
+                                durationMonth[yearMonthKey].durationProduct[productName] = 0;
+                            }
+                            if (!durationMonth[nextYearMonthKey].durationProduct.hasOwnProperty(productName)) {
+                                durationMonth[nextYearMonthKey].durationProduct[productName] = 0;
+                            }
+                            durationMonth[yearMonthKey].durationProduct[productName] += sortedWeekItem.product[productName] * monthRatio;
+                            durationMonth[nextYearMonthKey].durationProduct[productName] +=
+                                                    sortedWeekItem.product[productName] * nextMonthRatio;
+                        }
+
+                        sheets[employee].push(row);
+                    }
+
+                    start = addDays(start, 7);
+                }
+            }
+
+            sheets[employee].push(['']);
+            sheets[employee].push(['']);
+
+            for (const yearMonthKey in durationMonth) {
+                if (!durationMonth.hasOwnProperty(yearMonthKey)) {
+                    continue;
+                }
+                sheets[employee].push(['']);
+                sheets[employee].push([yearMonthKey]);
+                sheets[employee].push([]);
+                sheets[employee].push([]);
+                const index = sheets[employee].length - 2;
+
+                for (const productName in durationMonth[yearMonthKey].durationProduct) {
+                    if (!durationMonth[yearMonthKey].durationProduct.hasOwnProperty(productName)) {
+                        continue;
+                    }
+                    sheets[employee][index].push(productName);
+                    sheets[employee][index + 1].push(durationMonth[yearMonthKey].durationProduct[productName]);
+                }
+
+                const headerRow = [
+                    header2[weekHeaderDict.DURATION_DEPLOYMENT],
+                    header2[weekHeaderDict.DURATION_DESIGN],
+                    header2[weekHeaderDict.DURATION_DEVELOPMENT],
+                    header2[weekHeaderDict.DURATION_DOCUMENTATION],
+                    header2[weekHeaderDict.DURATION_MARKETING],
+                    header2[weekHeaderDict.DURATION_REQUIREMENTS],
+                    header2[weekHeaderDict.DURATION_TESTING],
+                    header2[weekHeaderDict.DURATION_OTHERS],
+                    header2[weekHeaderDict.DURATION_NA],
+                    header2[weekHeaderDict.MISMATCH]
+                ];
+
+                const contentRow = [
+                    durationMonth[yearMonthKey].durationDeployment,
+                    durationMonth[yearMonthKey].durationDesign,
+                    durationMonth[yearMonthKey].durationDevelopment,
+                    durationMonth[yearMonthKey].durationDocumentation,
+                    durationMonth[yearMonthKey].durationMarketing,
+                    durationMonth[yearMonthKey].durationRequirements,
+                    durationMonth[yearMonthKey].durationTesting,
+                    durationMonth[yearMonthKey].durationOthers,
+                    durationMonth[yearMonthKey].durationNA,
+                    durationMonth[yearMonthKey].monthlyMismatch
+                ];
+
+                sheets[employee].push(headerRow);
+                sheets[employee].push(contentRow);
             }
         }
         return sheets;

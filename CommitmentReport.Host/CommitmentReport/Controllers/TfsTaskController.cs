@@ -64,7 +64,7 @@ namespace CommitmentReport.Controllers
         }
 
         [HttpPost("collapsed-work-item")]
-        public Dictionary<string, List<NtCollapsedWorkItem>> GetCollapsedWorkItemsWorkItems([FromBody] WorkItemInput input)
+        public Dictionary<string, List<NtCollapsedWorkItem>> GetCollapsedWorkItems([FromBody] WorkItemInput input)
         {
             var workItems = GetWorkItems(input);
             var collapsedWorkItems = new Dictionary<string, List<NtCollapsedWorkItem>>();
@@ -192,6 +192,143 @@ namespace CommitmentReport.Controllers
                 }
             }
             return collapsedWorkItems;
+        }
+
+        [HttpPost("weekly-work-item")]
+        public Dictionary<string, List<NtWeeklyWorkItem>> GetWeeklyWorkItems([FromBody] WorkItemInput input)
+        {
+            var workItems = GetWorkItems(input);
+            workItems.Sort(CompareWorkItemByDate);
+            var weeklyWorkItems = new Dictionary<string, List<NtWeeklyWorkItem>>();
+            var workItemStartDates = new Dictionary<string, Dictionary<string, int>>();
+            foreach (var workItem in workItems)
+            {
+                if (!weeklyWorkItems.ContainsKey(workItem.AssignedTo))
+                {
+                    weeklyWorkItems[workItem.AssignedTo] = new List<NtWeeklyWorkItem>();
+                    workItemStartDates[workItem.AssignedTo] = new Dictionary<string, int>();
+                }
+
+                var curDate = DateTime.Parse(workItem.ClosedDate);
+                var startDate = curDate.StartOfWeek(DayOfWeek.Monday);
+                var endDate = curDate.EndOfWeek(DayOfWeek.Monday);
+
+                var dateKey = startDate.ToString("yyyy MMMM dd"); 
+                if (!workItemStartDates[workItem.AssignedTo].ContainsKey(dateKey))
+                {
+                    workItemStartDates[workItem.AssignedTo][dateKey] = weeklyWorkItems[workItem.AssignedTo].Count;
+                    var weeklyWorkItem = new NtWeeklyWorkItem
+                    {
+                        Employee = workItem.AssignedTo,
+                        WeekStartDate = dateKey,
+                        WeekEndDate = endDate.ToString("yyyy MMMM dd"),
+                        Title = workItem.Title,
+                        //DurationDemonstration = 0,
+                        DurationDeployment = 0,
+                        DurationDesign = 0,
+                        DurationDevelopment = 0,
+                        DurationDocumentation = 0,
+                        DurationMarketing = 0,
+                        DurationRequirements = 0,
+                        DurationTesting = 0,
+                        DurationOthers = 0,
+                        DurationNA = 0,
+                        DurationTotal = 0,
+                        Product = new Dictionary<string, double>()
+                    };
+                    weeklyWorkItems[workItem.AssignedTo].Add(weeklyWorkItem);
+                }
+                else
+                {
+                    weeklyWorkItems[workItem.AssignedTo][workItemStartDates[workItem.AssignedTo][dateKey]].Title +=
+                        ", " + workItem.Title;
+                }
+
+                var itemIndex = workItemStartDates[workItem.AssignedTo][dateKey];
+
+                if (workItem.Activity.IsNullOrEmpty())
+                {
+                    workItem.Activity = string.Empty;
+                }
+                workItem.Activity = workItem.Activity.Trim().ToLower();
+
+                double duration = 0;
+                if (workItem.Duration != null)
+                {
+                    duration = workItem.Duration.Value;
+                }
+
+                var isMisc = workItem.Product.ToUpper().Equals("MISC");
+                if (!weeklyWorkItems[workItem.AssignedTo][itemIndex].Product.ContainsKey(workItem.Product) && !isMisc)
+                {
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] = 0;
+                }
+
+                weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationTotal += duration;
+                if (workItem.Activity.Equals(string.Empty))
+                {
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationNA += duration;
+                }
+                else if (workItem.Activity.Equals("demonstration"))
+                {
+                    //collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDemonstration += duration;
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationMarketing += duration;
+                }
+                else if (workItem.Activity.Equals("deployment"))
+                {
+                    if (!isMisc)
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
+                }
+                else if (workItem.Activity.Equals("design"))
+                {
+                    if (!isMisc)
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
+                }
+                else if (workItem.Activity.Equals("development"))
+                {
+                    if (!isMisc)
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
+                }
+                else if (workItem.Activity.Equals("documentation"))
+                {
+                    if (!isMisc)
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                    }
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
+                }
+                else if (workItem.Activity.Equals("marketing"))
+                {
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationMarketing += duration;
+                }
+                else if (workItem.Activity.Equals("requirements"))
+                {
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationRequirements += duration;
+                }
+                else if (workItem.Activity.Equals("testing"))
+                {
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationTesting += duration;
+                }
+                else if (workItem.Activity.Equals("others"))
+                {
+                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                }
+
+                if (workItem.TeamProject.Trim().ToLower().Replace(" ", "").Equals("miscsg"))
+                {
+                    continue;
+                }
+            }
+            return weeklyWorkItems;
         }
 
         /// <summary>
@@ -393,12 +530,10 @@ namespace CommitmentReport.Controllers
                 "' and Source.[System.State] <> 'Removed' and Source.[System.WorkItemType] <> 'Task') " +
                 "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') " +
                 "And (Target.[System.TeamProject] = '" + teamProjectName +
-                "' and Target.[System.State] = 'Done' and ((Target.[Microsoft.VSTS.Common.ClosedDate] <= '" +
-                endDate.ToLongDateString() + "' and Target.[Microsoft.VSTS.Common.ClosedDate] >= '" +
-                startDate.ToLongDateString() + "' ) ";
+                "' and Target.[System.State] = 'Done' ";
             if (rangeIterations.Count > 0)
             {
-                query += " or ( ";
+                query += " and ( ";
                 for (var i = 0; i < rangeIterations.Count; i++)
                 {
                     var iteration = rangeIterations[i];
@@ -411,7 +546,7 @@ namespace CommitmentReport.Controllers
                 }
                 query += " ) ";
             }
-            query += ") and ";
+            query += " and ";
 
             if (ntTeamMembers.Count > 0)
             {
@@ -464,5 +599,57 @@ namespace CommitmentReport.Controllers
             // Create instance of WorkItemTrackingHttpClient using VssConnection
             return connection.GetClient<WorkHttpClient>();
         }
+
+        private static int CompareWorkItemByDate(NtWorkItem x, NtWorkItem y)
+        {
+            if (x == null)
+            {
+                if (y == null)
+                {
+                    // If x is null and y is null, they're
+                    // equal. 
+                    return 0;
+                }
+                else
+                {
+                    // If x is null and y is not null, y
+                    // is greater. 
+                    return -1;
+                }
+            }
+            else
+            {
+                // If x is not null...
+                //
+                if (y == null)
+                    // ...and y is null, x is greater.
+                {
+                    return 1;
+                }
+                else
+                {
+                    var xDate = DateTime.Parse(x.ClosedDate);
+                    var yDate = DateTime.Parse(y.ClosedDate);
+                    return xDate.CompareTo(yDate);
+                }
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Helper Extension class for DateTime
+/// </summary>
+public static class DateTimeExtensions
+{
+    public static DateTime StartOfWeek(this DateTime dt, DayOfWeek startOfWeek)
+    {
+        int diff = (7 + (dt.DayOfWeek - startOfWeek)) % 7;
+        return dt.AddDays(-1 * diff).Date;
+    }
+
+    public static DateTime EndOfWeek(this DateTime dt, DayOfWeek startOfWeek)
+    {
+        return StartOfWeek(dt, startOfWeek).AddDays(4).Date;
     }
 }

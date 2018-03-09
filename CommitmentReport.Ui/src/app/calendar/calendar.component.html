@@ -168,9 +168,16 @@
                     <input type="text" name="excel-file-name" class="form-control" [(ngModel)]="excelFileName">
                 </div>               
                 
-                <button class="btn btn-danger" (click)="exportToDailyCsv()">
-                    Export (Daily)
-                </button>
+                <div class="btn-group">
+                    <button class="btn btn-danger" (click)="exportToDailyCsv()">
+                        Export (Daily)
+                    </button>
+    
+                    <button class="btn btn-danger" (click)="exportToWeeklyCsv()">
+                        Export (Weekly)
+                    </button>
+                </div>
+                
             </div>
         </form>
     </div>
