@@ -7,7 +7,7 @@ import * as $ from 'jquery';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  title = 'Engagement Ratio UI';
+  title = 'Commitment Report';
 
   constructor () {
   }
