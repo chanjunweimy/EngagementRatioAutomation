@@ -122,6 +122,12 @@ namespace CommitmentReport.Controllers
                 }
 
                 var isMisc = workItem.Product.ToUpper().Equals("MISC");
+                if (!isMisc)
+                {
+                    var arr = workItem.Product.Split('.');
+                    workItem.Product = String.Join(".", arr.Take(arr.Length - 1)).Trim();
+                }
+
                 if (!collapsedWorkItems[workItem.AssignedTo][itemIndex].Product.ContainsKey(workItem.Product) && !isMisc)
                 {
                     collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] = 0;
