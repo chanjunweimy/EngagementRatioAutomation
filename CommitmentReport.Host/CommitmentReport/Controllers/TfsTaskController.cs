@@ -460,7 +460,11 @@ namespace CommitmentReport.Controllers
                         activity = taskWorkItem.Fields["Microsoft.VSTS.Common.Activity"].ToString();
                     }
                     var title = taskWorkItem.Fields["System.Title"].ToString();
-                    var assignedTo = taskWorkItem.Fields["System.AssignedTo"].ToString();
+                    string assignedTo = null;
+                    if (taskWorkItem.Fields.ContainsKey("System.AssignedTo"))
+                    {
+                        assignedTo = taskWorkItem.Fields["System.AssignedTo"].ToString();
+                    }
                     var state = taskWorkItem.Fields["System.State"].ToString();
                     string closedDateString = null;
                     DateTime? closedDate = null;

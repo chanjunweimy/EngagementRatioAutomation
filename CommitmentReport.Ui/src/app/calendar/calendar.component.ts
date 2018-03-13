@@ -27,7 +27,7 @@ import {
     isSunday
 } from 'date-fns';
 import { Subject } from 'rxjs/Subject';
-import { NgbModal, NgbDateStruct } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbDateStruct, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 
 import {
     CalendarEvent,
@@ -231,6 +231,10 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                                 nextMonthLeave: number
                                     }}} = {};
 
+    justLoginCounter = 0;
+
+    justLoginRef: NgbModalRef;
+
     DAY_CONSTS = {
         MONDAY: 0,
         TUESDAY: 1,
@@ -367,135 +371,29 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     onFileChange(evt: any) {
         /* wire up file reader */
         const target: DataTransfer = <DataTransfer>(evt.target);
-        if (target.files.length !== 1) {
-            throw new Error('Cannot use multiple files');
+        this.justLoginDict = {};
+        this.justLoginWeekDict = {};
+        this.justLoginLeaveDict = {};
+
+        this.justLoginCounter = target.files.length;
+        let fileString = 'files';
+        if (target.files.length <= 1) {
+            fileString = 'file';
         }
-        const reader: FileReader = new FileReader();
-        reader.onload = (e: any) => {
-            /* read workbook */
-            const bstr: string = e.target.result;
-            const wb: XLSX.WorkBook = XLSX.read(bstr, { type: 'binary' });
+        this.modalData = { title: 'Uploading ' + this.justLoginCounter + fileString };
+        this.justLoginRef = this._modal.open(this.modalContent, { size: 'sm',
+                                                          windowClass: 'transparent-image',
+                                                          backdrop: 'static',
+                                                          keyboard: false });
 
-            /* grab first sheet */
-            const wsname: string = wb.SheetNames[0];
-            const ws: XLSX.WorkSheet = wb.Sheets[wsname];
-
-            /* save data */
-            const data = <AOA>(XLSX.utils.sheet_to_json(ws, { header: 1 }));
-            const header = data[0];
-            const headerDict = {};
-            for (let i = 0; i < header.length; i++) {
-                let title = header[i];
-                title = title.trim();
-                if (title !== this.JUSTLOGIN_HEADER_DICT.EMPLOYEE &&
-                    title !== this.JUSTLOGIN_HEADER_DICT.DATE &&
-                    title !== this.JUSTLOGIN_HEADER_DICT.DAY &&
-                    title !== this.JUSTLOGIN_HEADER_DICT.IN &&
-                    title !== this.JUSTLOGIN_HEADER_DICT.WH &&
-                    title !== this.JUSTLOGIN_HEADER_DICT.REMARKS) {
-                    continue;
-                }
-                headerDict[title] = i;
+        for (const fileIndex in target.files) {
+            if (!target.files.hasOwnProperty(fileIndex)) {
+                continue;
             }
-            this.justLoginDict = {};
-            this.justLoginWeekDict = {};
-            this.justLoginLeaveDict = {};
-            for (let i = 1; i < data.length; i++) {
-                const dateString: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.DATE]].trim();
-                let tokens: string[] = [];
-                for (const separator of this.DATE_SEPARATORS) {
-                    if (dateString.includes(separator)) {
-                        tokens = dateString.split(separator);
-                        if (tokens[2].length === 2) {
-                            tokens[2] = '20' + tokens[2];
-                        }
-                    }
-                }
-
-                let employee = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.EMPLOYEE]];
-                employee = this.JUSTLOGIN_NAME_DICT[employee];
-
-                let date: string;
-                let weekStartDate: Date = new Date();
-                if (tokens.length >= 3) {
-                    const cur = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
-                    weekStartDate = startOfWeek(cur, {weekStartsOn: 1});
-                    date = cur.toDateString();
-                }
-
-                if (!this.justLoginLeaveDict.hasOwnProperty(employee)) {
-                    this.justLoginLeaveDict[employee] = {};
-                }
-
-                if (!this.justLoginLeaveDict[employee].hasOwnProperty(weekStartDate.toDateString())) {
-                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()] = {
-                        curMonthLeave: 0,
-                        nextMonthLeave: 0
-                    };
-                }
-
-                let inOffice: string;
-                if (data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]].trim() === '-') {
-                    inOffice = undefined;
-                } else {
-                    inOffice = new Date(date + ' '
-                                + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]]).toTimeString();
-                }
-                let remarks: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.REMARKS]];
-
-                let engagedHour = +data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]];
-                if (!inOffice) {
-                    engagedHour = 0;
-                    if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
-                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 1;
-                    } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
-                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 1;
-                    }
-                } else if (remarks && (remarks.toLowerCase().includes('annual') || remarks.toLowerCase().includes('sick'))) {
-                    engagedHour -= 4;
-                    if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
-                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 0.5;
-                    } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
-                        this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 0.5;
-                    }
-                }
-
-                if (!this.justLoginDict.hasOwnProperty(employee)) {
-                    this.justLoginDict[employee] = {};
-                }
-
-                this.justLoginDict[employee][date] = {
-                    in: inOffice,
-                    engagedHour: engagedHour,
-                    remarks: remarks
-                };
-
-                if (!this.justLoginWeekDict.hasOwnProperty(employee)) {
-                    this.justLoginWeekDict[employee] = {};
-                }
-
-                const weekStartDateString = weekStartDate.toDateString();
-                if (!remarks) {
-                    remarks = '';
-                } else {
-                    remarks = remarks + ' ( ' + date + ' ) ';
-                }
-                if (!this.justLoginWeekDict[employee].hasOwnProperty(weekStartDateString)) {
-                    this.justLoginWeekDict[employee][weekStartDateString] = {
-                        engagedHour: engagedHour,
-                        remarks: remarks
-                    };
-                } else {
-                    this.justLoginWeekDict[employee][weekStartDateString].engagedHour += engagedHour;
-                    if (this.justLoginWeekDict[employee][weekStartDateString].remarks !== '' && remarks !== '') {
-                        this.justLoginWeekDict[employee][weekStartDateString].remarks += ', ' + remarks;
-                    } else {
-                        this.justLoginWeekDict[employee][weekStartDateString].remarks += remarks;
-                    }
-                }
-            }
-        };
-        reader.readAsBinaryString(target.files[0]);
+            const reader: FileReader = new FileReader();
+            reader.onload = (e: any) => this.fileOnLoad(e);
+            reader.readAsBinaryString(target.files[fileIndex]);
+        }
     }
 
     collapse() {
@@ -504,6 +402,136 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     }
 
     // ============================================= HELPER START =========================================================
+
+    fileOnLoad(e: any) {
+        this.justLoginCounter--;
+
+        /* read workbook */
+        const bstr: string = e.target.result;
+        const wb: XLSX.WorkBook = XLSX.read(bstr, { type: 'binary' });
+
+        /* grab first sheet */
+        const wsname: string = wb.SheetNames[0];
+        const ws: XLSX.WorkSheet = wb.Sheets[wsname];
+
+        /* save data */
+        const data = <AOA>(XLSX.utils.sheet_to_json(ws, { header: 1 }));
+        const header = data[0];
+        const headerDict = {};
+        for (let i = 0; i < header.length; i++) {
+            let title = header[i];
+            title = title.trim();
+            if (title !== this.JUSTLOGIN_HEADER_DICT.EMPLOYEE &&
+                title !== this.JUSTLOGIN_HEADER_DICT.DATE &&
+                title !== this.JUSTLOGIN_HEADER_DICT.DAY &&
+                title !== this.JUSTLOGIN_HEADER_DICT.IN &&
+                title !== this.JUSTLOGIN_HEADER_DICT.WH &&
+                title !== this.JUSTLOGIN_HEADER_DICT.REMARKS) {
+                continue;
+            }
+            headerDict[title] = i;
+        }
+        for (let i = 1; i < data.length; i++) {
+            const dateString: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.DATE]].trim();
+            let tokens: string[] = [];
+            for (const separator of this.DATE_SEPARATORS) {
+                if (dateString.includes(separator)) {
+                    tokens = dateString.split(separator);
+                    if (tokens[2].length === 2) {
+                        tokens[2] = '20' + tokens[2];
+                    }
+                }
+            }
+
+            let employee = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.EMPLOYEE]];
+            employee = this.JUSTLOGIN_NAME_DICT[employee];
+
+            let date: string;
+            let weekStartDate: Date = new Date();
+            if (tokens.length >= 3) {
+                const cur = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
+                weekStartDate = startOfWeek(cur, {weekStartsOn: 1});
+                date = cur.toDateString();
+            }
+
+            if (!this.justLoginLeaveDict.hasOwnProperty(employee)) {
+                this.justLoginLeaveDict[employee] = {};
+            }
+
+            if (!this.justLoginLeaveDict[employee].hasOwnProperty(weekStartDate.toDateString())) {
+                this.justLoginLeaveDict[employee][weekStartDate.toDateString()] = {
+                    curMonthLeave: 0,
+                    nextMonthLeave: 0
+                };
+            }
+
+            let inOffice: string;
+            if (data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]].trim() === '-') {
+                inOffice = undefined;
+            } else {
+                inOffice = new Date(date + ' '
+                            + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]]).toTimeString();
+            }
+            let remarks: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.REMARKS]];
+
+            let engagedHour = +data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]];
+            if (!inOffice) {
+                engagedHour = 0;
+                if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 1;
+                } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 1;
+                }
+            } else if (remarks && (remarks.toLowerCase().includes('annual') || remarks.toLowerCase().includes('sick'))) {
+                engagedHour -= 4;
+                if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 0.5;
+                } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 0.5;
+                }
+            }
+
+            if (!this.justLoginDict.hasOwnProperty(employee)) {
+                this.justLoginDict[employee] = {};
+            }
+
+            this.justLoginDict[employee][date] = {
+                in: inOffice,
+                engagedHour: engagedHour,
+                remarks: remarks
+            };
+
+            if (!this.justLoginWeekDict.hasOwnProperty(employee)) {
+                this.justLoginWeekDict[employee] = {};
+            }
+
+            const weekStartDateString = weekStartDate.toDateString();
+            if (!remarks) {
+                remarks = '';
+            } else {
+                remarks = remarks + ' ( ' + date + ' ) ';
+            }
+            if (!this.justLoginWeekDict[employee].hasOwnProperty(weekStartDateString)) {
+                this.justLoginWeekDict[employee][weekStartDateString] = {
+                    engagedHour: engagedHour,
+                    remarks: remarks
+                };
+            } else {
+                this.justLoginWeekDict[employee][weekStartDateString].engagedHour += engagedHour;
+                if (this.justLoginWeekDict[employee][weekStartDateString].remarks !== '' && remarks !== '') {
+                    this.justLoginWeekDict[employee][weekStartDateString].remarks += ', ' + remarks;
+                } else {
+                    this.justLoginWeekDict[employee][weekStartDateString].remarks += remarks;
+                }
+            }
+        }
+
+        if (this.justLoginCounter === 0) {
+            this.justLoginRef.close();
+            alert('Upload finished');
+            console.log(this.justLoginWeekDict);
+        }
+    }
 
     getDay(date: Date, desiredDay: number): Date {
         date = new Date(date);
