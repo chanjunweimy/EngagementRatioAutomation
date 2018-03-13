@@ -529,7 +529,6 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         if (this.justLoginCounter === 0) {
             this.justLoginRef.close();
             alert('Upload finished');
-            console.log(this.justLoginWeekDict);
         }
     }
 
