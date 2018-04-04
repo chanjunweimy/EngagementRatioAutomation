@@ -17,6 +17,7 @@ export class GanttTask {
   progress: number;
   duration: number;
   parent: number;
+  unscheduled: boolean;
 }
 
 export class GanttLink {

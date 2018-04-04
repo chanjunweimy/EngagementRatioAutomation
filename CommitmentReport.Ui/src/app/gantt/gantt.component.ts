@@ -19,11 +19,14 @@ export class GanttComponent implements OnInit, AfterViewInit {
         gantt.config.xml_date = '%Y-%m-%d %H:%i';
 
         gantt.init(this.ganttContainer.nativeElement);
+        gantt.config.show_progress = true;
+        gantt.config.show_unscheduled = true;
+        gantt.config.columns = this.setUpGridArea();
 
         const data = [
             {id: 1, text: 'Task #1', start_date: '2017-04-15 00:00', duration: 3, progress: 0.6},
             {id: 2, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4, parent: 1},
-            {id: 3, text: 'Task #3', start_date: '2017-04-18 00:00', duration: 61, progress: 0.4},
+            {id: 3, text: 'Task #3', unscheduled: true, duration: 0, progress: 0.4},
             {id: 4, text: 'Task #4', start_date: '2017-04-18 00:00', duration: 15, progress: 0.4},
             {id: 5, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
             {id: 6, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
@@ -49,7 +52,6 @@ export class GanttComponent implements OnInit, AfterViewInit {
         ];
 
         gantt.parse({data, links});
-        gantt.config.columns = this.setUpGridArea();
     }
 
     ngAfterViewInit() {
