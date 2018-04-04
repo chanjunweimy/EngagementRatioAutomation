@@ -5,8 +5,7 @@ import { CalendarModule } from 'angular-calendar';
 import { NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CalendarUtilModule } from '../calendar-util/calendar-util.module';
-import { CalendarComponent } from './calendar.component';
-import { CalendarApiService } from './api/calendar.api.service';
+import { GanttComponent } from './gantt.component';
 
 @NgModule({
   imports: [
@@ -17,10 +16,10 @@ import { CalendarApiService } from './api/calendar.api.service';
     CalendarModule,
     CalendarUtilModule
   ],
-  declarations: [CalendarComponent],
-  exports: [CalendarComponent],
+  declarations: [GanttComponent],
+  exports: [GanttComponent],
   providers: [
-    CalendarApiService
+    // CalendarApiService
   ]
 })
-export class TfsCalendarModule {}
+export class TfsGanttModule {}

@@ -198,6 +198,10 @@
     semver "^5.3.0"
     semver-intersect "^1.1.2"
 
+"@types/dhtmlxgantt@^4.0.34":
+  version "4.0.34"
+  resolved "https://registry.yarnpkg.com/@types/dhtmlxgantt/-/dhtmlxgantt-4.0.34.tgz#2e8093d0052183062e595d29542452d9699e7dde"
+
 "@types/jasmine@*", "@types/jasmine@~2.8.3":
   version "2.8.6"
   resolved "https://registry.yarnpkg.com/@types/jasmine/-/jasmine-2.8.6.tgz#14445b6a1613cf4e05dd61c3c3256d0e95c0421e"
@@ -1881,6 +1885,10 @@ detective@^4.0.0:
   dependencies:
     acorn "^5.2.1"
     defined "^1.0.0"
+
+dhtmlx-gantt@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/dhtmlx-gantt/-/dhtmlx-gantt-5.1.0.tgz#98380563b2e7e42cb5bf68d30099db85b0a3a05e"
 
 di@^0.0.1:
   version "0.0.1"

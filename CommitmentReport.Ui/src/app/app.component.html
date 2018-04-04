@@ -1,8 +1,13 @@
 <!--The content below is only a placeholder and can be replaced.-->
-<div style="text-align:center">
-  <h1>
-    {{ title }}
-  </h1>
-</div>
-<app-calendar-component>Loading...</app-calendar-component>
-
+<ngb-tabset>
+  <ngb-tab [title]="crTab">
+    <ng-template ngbTabContent>
+      <app-calendar-component>Loading...</app-calendar-component>
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab [title]="ganttTab">
+    <ng-template ngbTabContent>
+      <app-gantt>Loading...</app-gantt>
+    </ng-template>
+  </ngb-tab>
+</ngb-tabset>

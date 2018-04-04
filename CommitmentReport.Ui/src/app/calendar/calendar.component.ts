@@ -36,7 +36,7 @@ import {
 } from 'angular-calendar';
 import { forkJoin } from 'rxjs/observable/forkJoin';
 
-import { NtApiService, NtWorkItem, NtTeamMember, NtCollapsedWorkItem, NtWeeklyWorkItem } from '../api/nt-api.service';
+import { CalendarApiService, NtWorkItem, NtTeamMember, NtCollapsedWorkItem, NtWeeklyWorkItem } from './api/calendar.api.service';
 
 import * as XLSX from 'xlsx';
 
@@ -248,7 +248,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     activeDayIsOpen = true;
 
     constructor(private _modal: NgbModal,
-                private _apiService: NtApiService,
+                private _apiService: CalendarApiService,
                 private _changeDetectorRef: ChangeDetectorRef) {}
 
     ngOnInit() {

@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+
 import * as $ from 'jquery';
 
 @Component({
@@ -7,7 +8,8 @@ import * as $ from 'jquery';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  title = 'Commitment Report';
+  crTab = 'Calendar';
+  ganttTab = 'Gantt Chart';
 
   constructor () {
   }
