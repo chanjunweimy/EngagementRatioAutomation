@@ -6,6 +6,7 @@ import { NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CalendarUtilModule } from '../calendar-util/calendar-util.module';
 import { GanttComponent } from './gantt.component';
+import { GanttApiService } from './api/gantt.api.service';
 
 @NgModule({
   imports: [
@@ -19,7 +20,7 @@ import { GanttComponent } from './gantt.component';
   declarations: [GanttComponent],
   exports: [GanttComponent],
   providers: [
-    // CalendarApiService
+    GanttApiService
   ]
 })
 export class TfsGanttModule {}
