@@ -17,7 +17,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-8">
         <div class="btn-group">
             <label class="btn btn-primary" [class.active]="hasStartFromFilter">
                 <input id="collapse-checkbox" 
@@ -27,11 +27,9 @@
                         [(ngModel)]="hasStartFromFilter" 
                         [checked]="hasStartFromFilter"> Start From
             </label>
-            <calendar-util-date-time-picker name="date-start" [(ngModel)]="startDate" placeholder="Start Date">
+            <calendar-util-date-time-picker *ngIf="hasStartFromFilter" name="date-start" [(ngModel)]="startDate" placeholder="Start Date">
             </calendar-util-date-time-picker>
         </div>
-    </div>
-    <div class="col-md-4">
         <div class="btn-group">
             <label class="btn btn-primary" [class.active]="hasEndByFilter">
                 <input id="collapse-checkbox" 
@@ -41,8 +39,11 @@
                         [(ngModel)]="hasEndByFilter" 
                         [checked]="hasEndByFilter"> End By
             </label>
-            <calendar-util-date-time-picker name="date-end" [(ngModel)]="endDate" placeholder="End Date">
+            <calendar-util-date-time-picker *ngIf="hasEndByFilter" name="date-end" [(ngModel)]="endDate" placeholder="End Date">
             </calendar-util-date-time-picker>
+        </div>
+        <div class="btn btn-outline-secondary" (click)="refresh()">
+            refresh
         </div>
     </div>
 </div>

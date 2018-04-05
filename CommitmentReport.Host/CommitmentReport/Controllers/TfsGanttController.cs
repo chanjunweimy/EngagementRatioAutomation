@@ -41,18 +41,18 @@ namespace CommitmentReport.Controllers
         /// Get tfs Tasks by start and end date and specified users
         /// </summary>
         [HttpPost("gantt-items")]
-        public List<GanttTaskDto> GetWorkItems()
+        public List<GanttTaskDto> GetWorkItems([FromBody] GanttInput input)
         {
-            var ntCloudWorkItems = GetNtWorkItemsInCollection(URL_COLLECTION_NTCLOUD, NAME_PROJECT_NTCLOUD);
+            var ntCloudWorkItems = GetNtWorkItemsInCollection(URL_COLLECTION_NTCLOUD, NAME_PROJECT_NTCLOUD, input);
             return ntCloudWorkItems;
         }
 
-        private static List<GanttTaskDto> GetNtWorkItemsInCollection(string collectionUri, string teamProjectName)
+        private static List<GanttTaskDto> GetNtWorkItemsInCollection(string collectionUri, string teamProjectName, GanttInput input)
         {
             var witClient = GetWitClient(collectionUri);
             var workHttpClient = GetWorkHttpClient(collectionUri);
             var iterations = workHttpClient.GetTeamIterationsAsync(new TeamContext(teamProjectName)).Result;
-            var workItemQueryResult = GetWorkItemQueryResult(teamProjectName, witClient, iterations, out var workItemLinks);
+            var workItemQueryResult = GetWorkItemQueryResult(teamProjectName, witClient, iterations, input.Start, input.End, out var workItemLinks);
             if (!workItemLinks.Any())
             {
                 return new List<GanttTaskDto>();
@@ -144,11 +144,12 @@ namespace CommitmentReport.Controllers
                         closedDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Common.ClosedDate"].ToString());
                         closedDateString = closedDate.Value.ToString("yyyy-MM-dd");
                     }
+                    DateTime? targetDate = null;
                     string targetDateString = null;
                     if (taskWorkItem.Fields.ContainsKey("Microsoft.VSTS.Scheduling.TargetDate"))
                     {
-                        var targetDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Scheduling.TargetDate"].ToString());
-                        targetDateString = targetDate.ToString("yyyy-MM-dd");
+                        targetDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Scheduling.TargetDate"].ToString());
+                        targetDateString = targetDate.Value.ToString("yyyy-MM-dd");
                     }
                     string iterationPath = null;
                     if (taskWorkItem.Fields.ContainsKey("System.IterationPath") && workItemType != null && workItemType.ToLower().Equals("task"))
@@ -166,21 +167,11 @@ namespace CommitmentReport.Controllers
                                 {
                                     closedDate = iteration.Attributes.FinishDate;
                                 }
-
                                 closedDateString = closedDate.Value.ToString("yyyy-MM-dd");
                             }
 
-                            if (startDate.HasValue)
-                            {
-                                if (startDate.Value.CompareTo(iteration.Attributes.StartDate) < 0 ||
-                                    startDate.Value.CompareTo(iteration.Attributes.FinishDate) > 0)
-                                {
-                                    startDate = iteration.Attributes.StartDate;
-                                }
-
-                                startDateString = startDate.Value.ToString("yyyy-MM-dd");
-                            }
-                            
+                            startDate = iteration.Attributes.StartDate;
+                            startDateString = startDate.Value.ToString("yyyy-MM-dd");
                         }
                     }
 
@@ -202,6 +193,11 @@ namespace CommitmentReport.Controllers
                     if (closedDate.HasValue && startDate.HasValue)
                     {
                         duration = (closedDate.Value - startDate.Value).Days;
+                        unscheduled = false;
+                    }
+                    else if (targetDate.HasValue && startDate.HasValue)
+                    {
+                        duration = (targetDate.Value - startDate.Value).Days;
                         unscheduled = false;
                     }
 
@@ -232,16 +228,39 @@ namespace CommitmentReport.Controllers
             return ganttTaskDtos;
         }
 
-        private static WorkItemQueryResult GetWorkItemQueryResult(string teamProjectName, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, out WorkItemLink[] workItemLinks)
+        private static WorkItemQueryResult GetWorkItemQueryResult(string teamProjectName, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, string start, string end, out WorkItemLink[] workItemLinks)
         {
-            var rangeIterations = iterations.Where(i =>
-                i.Attributes.StartDate.HasValue && i.Attributes.FinishDate.HasValue).ToList();
-
             var query =
                 "Select [System.Id], [System.WorkItemType], [System.Title], [System.AssignedTo], [System.State], [Microsoft.VSTS.Scheduling.TargetDate], [Microsoft.VSTS.Common.ClosedDate], [System.CreatedDate], [Nt.Duration] " +
                 "From WorkItemLinks " +
-                "Where (Source.[System.TeamProject] = '" + teamProjectName +
-                "' And Source.[System.WorkItemType] = 'Epic' and (Source.[System.State] = 'Done' or Source.[System.State] = 'In Progress')) " +
+                "Where (Source.[System.TeamProject] = '" + teamProjectName + "' ";
+            if (start != null)
+            {
+                var startDate = DateTime.Parse(start);
+                var rangeIterations = iterations.Where(i =>
+                    i.Attributes.StartDate.HasValue && i.Attributes.FinishDate.HasValue &&
+                    (startDate.CompareTo(i.Attributes.StartDate) <= 0)).ToList();
+                query += " And ( Source.[System.CreatedDate] > '" + start + "' Or ";
+                if (rangeIterations.Count > 0)
+                {
+                    for (var i = 0; i < rangeIterations.Count; i++)
+                    {
+                        var iteration = rangeIterations[i];
+                        query += " Source.[System.IterationPath] == '" + iteration.Path + "' ";
+
+                        if (i < rangeIterations.Count - 1)
+                        {
+                            query += " Or ";
+                        }
+                    }
+                }
+                query += " ) ";
+            }
+            if (end != null)
+            {
+                query += " And ( Source.[Microsoft.VSTS.Common.ClosedDate] < '" + end + "' Or Source.[Microsoft.VSTS.Scheduling.TargetDate] < '" + end + "' ) ";
+            }
+            query += " And Source.[System.WorkItemType] = 'Epic' and (Source.[System.State] = 'Done' or Source.[System.State] = 'In Progress')) " +
                 "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') " +
                 "And (Target.[System.TeamProject] = '" + teamProjectName +
                 "' And [Target].[System.State] <> 'Removed'  And Target.[System.WorkItemType] <> '') ";

@@ -8,8 +8,8 @@ export class GanttApiService {
 
   constructor(private _http: Http) { }
 
-  getGanttItems(): Observable<Array<GanttTask>> {
-    return this._http.post('/api/TfsGantt/gantt-items', {}).map(x => {
+  getGanttItems(start: string, end: string): Observable<Array<GanttTask>> {
+    return this._http.post('/api/TfsGantt/gantt-items', {start: start, end: end}).map(x => {
       const ganttTaskDtos: Array<GanttTaskDto> = x.json() || [];
       const ganttTasks: Array<GanttTask> = [];
       for (const ganttTaskDto of ganttTaskDtos) {

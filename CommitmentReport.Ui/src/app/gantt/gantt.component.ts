@@ -52,17 +52,38 @@ export class GanttComponent implements OnInit, AfterViewInit {
 
     ngAfterViewInit() {
         this.changeDepth(this.view, null);
+        this.refresh();
+    }
 
+    refresh(): void {
+        gantt.clearAll();
+        let start: string = null;
+        let end: string = null;
+        if (this.hasStartFromFilter) {
+            start = this.startDate.toDateString();
+            gantt.config.start_date = this.startDate;
+        }
+        if (this.hasEndByFilter) {
+            end = this.endDate.toDateString();
+            gantt.config.end_date = this.endDate;
+        }
 
         this.modalData = { title: 'Loading Gantt Chart Data...' };
         const ref = this._modal.open(this.modalContent, { size: 'sm',
                                                           windowClass: 'transparent-image',
                                                           backdrop: 'static',
                                                           keyboard: false });
-        this._apiService.getGanttItems().subscribe(ganttTasks => {
+        this._apiService.getGanttItems(start, end).subscribe(ganttTasks => {
             const data = ganttTasks;
             const links = [];
             gantt.parse({data, links});
+
+            if (this.hasStartFromFilter) {
+                gantt.config.start_date = this.startDate;
+            }
+            if (this.hasEndByFilter) {
+                gantt.config.end_date = this.endDate;
+            }
             ref.close();
         });
     }
