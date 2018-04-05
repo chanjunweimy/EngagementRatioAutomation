@@ -1,8 +1,9 @@
-import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
-import { GanttTask, GanttLink } from './api/gantt.api.service';
+import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef, TemplateRef } from '@angular/core';
+import { GanttTask, GanttLink, GanttApiService } from './api/gantt.api.service';
 
 import 'dhtmlx-gantt';
 import {} from '@types/dhtmlxgantt';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
     selector: 'app-gantt',
@@ -11,9 +12,24 @@ import {} from '@types/dhtmlxgantt';
 })
 export class GanttComponent implements OnInit, AfterViewInit {
     @ViewChild('gantt_here') ganttContainer: ElementRef;
+    @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
     view = 'week';
     grid_columns = ['title', 'progress'];
+
+    modalData: {
+        title: string
+    };
+
+    hasStartFromFilter = false;
+    hasEndByFilter = false;
+
+    startDate: Date = new Date();
+    endDate: Date = new Date();
+
+    constructor(private _modal: NgbModal,
+        private _apiService: GanttApiService,
+        private _changeDetectorRef: ChangeDetectorRef) {}
 
     ngOnInit() {
         gantt.config.xml_date = '%Y-%m-%d %H:%i';
@@ -21,41 +37,34 @@ export class GanttComponent implements OnInit, AfterViewInit {
         gantt.init(this.ganttContainer.nativeElement);
         gantt.config.show_progress = true;
         gantt.config.show_unscheduled = true;
+        gantt.config.touch = false;
+        gantt.config.touch_drag = false;
+        gantt.config.touch_feedback = false;
+        gantt.config.correct_work_time = false;
+        gantt.config.details_on_dblclick = false;
+        gantt.config.drag_lightbox = true;
+        gantt.config.drag_links = false;
+        gantt.config.drag_move = false;
+        gantt.config.drag_progress = false;
+        gantt.config.drag_resize = false;
         gantt.config.columns = this.setUpGridArea();
-
-        const data = [
-            {id: 1, text: 'Task #1', start_date: '2017-04-15 00:00', duration: 3, progress: 0.6},
-            {id: 2, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4, parent: 1},
-            {id: 3, text: 'Task #3', unscheduled: true, duration: 0, progress: 0.4},
-            {id: 4, text: 'Task #4', start_date: '2017-04-18 00:00', duration: 15, progress: 0.4},
-            {id: 5, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 6, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 7, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 8, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 9, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 10, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 11, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 12, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 13, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 14, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 15, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 16, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 17, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 18, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 19, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 20, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 10, progress: 0.4},
-            {id: 21, text: 'Task #2', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-            {id: 22, text: 'Task #22', start_date: '2017-04-18 00:00', duration: 3, progress: 0.4},
-        ];
-
-        const links = [
-        ];
-
-        gantt.parse({data, links});
     }
 
     ngAfterViewInit() {
         this.changeDepth(this.view, null);
+
+
+        this.modalData = { title: 'Loading Gantt Chart Data...' };
+        const ref = this._modal.open(this.modalContent, { size: 'sm',
+                                                          windowClass: 'transparent-image',
+                                                          backdrop: 'static',
+                                                          keyboard: false });
+        this._apiService.getGanttItems().subscribe(ganttTasks => {
+            const data = ganttTasks;
+            const links = [];
+            gantt.parse({data, links});
+            ref.close();
+        });
     }
 
     /**
@@ -67,8 +76,8 @@ export class GanttComponent implements OnInit, AfterViewInit {
             start_date: {name: 'start_date', label: 'Start Date', align: 'center', width: 100},
             end_date: {name: 'end_date', label: 'End Date', align: 'center' , width: 100},
             progress: {name: 'progress',   label: '%',   align: 'center', width: 44, template: (task) => {
-                const percent = (( task.progress ? task.progress : 0) * 100);
-                return (percent === 100 ? percent : percent.toPrecision(2) ) + '%';
+                const percent = (( task.progress ? task.progress : 0));
+                return percent + '%';
             }},
             add_button: {name: 'add', label: '', width: 44}
         };
