@@ -91,7 +91,7 @@ export class GanttComponent implements OnInit, AfterViewInit {
     /**
      * Setup the Grid side area with the desired columns
      */
-    private setUpGridArea() {
+    setUpGridArea() {
         const default_columns = {
             title: {name: 'text',  label: 'Work Item',  width: '*', tree: true },
             start_date: {name: 'start_date', label: 'Start Date', align: 'center', width: 100},
@@ -111,7 +111,7 @@ export class GanttComponent implements OnInit, AfterViewInit {
 
     }
 
-    private changeDepth(depth, el: any) {
+    changeDepth(depth, el: any) {
         gantt.config.scale_unit = this.view = depth;
         switch (depth) {
             case 'day':
