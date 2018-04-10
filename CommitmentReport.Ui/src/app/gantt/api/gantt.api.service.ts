@@ -10,6 +10,9 @@ export class GanttApiService {
   constructor(private _http: Http) { }
 
   getGanttItems(start: string, end: string): Observable<Array<GanttTask>> {
+    // remove filtering
+    start = null;
+    end = null;
     return this._http.post('/api/TfsGantt/gantt-items', {start: start, end: end}).map(x => {
       const ganttTaskDtos: Array<GanttTaskDto> = x.json() || [];
       const ganttTasks: Array<GanttTask> = [];

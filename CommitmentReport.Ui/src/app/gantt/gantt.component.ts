@@ -33,8 +33,6 @@ export class GanttComponent implements OnInit, AfterViewInit {
 
     ngOnInit() {
         gantt.config.xml_date = '%Y-%m-%d %H:%i';
-
-        gantt.init(this.ganttContainer.nativeElement);
         gantt.config.show_progress = true;
         gantt.config.show_unscheduled = true;
         gantt.config.touch = false;
@@ -48,36 +46,55 @@ export class GanttComponent implements OnInit, AfterViewInit {
         gantt.config.drag_progress = false;
         gantt.config.drag_resize = false;
         gantt.config.columns = this.setUpGridArea();
+        gantt.config.subscales = [
+            { unit: 'year', step: 1, date: '%Y' }
+        ];
 
         gantt.attachEvent('onTaskDblClick', id => {
             window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + id, '_blank');
         });
+        gantt.attachEvent('onBeforeGanttRender', () => {
+            const range = gantt.getSubtaskDates();
+            const scaleUnit = gantt.getState().scale_unit;
+            if (this.hasStartFromFilter) {
+                gantt.config.start_date = this.startDate;
+            }
+            if (this.hasEndByFilter) {
+                gantt.config.end_date = this.endDate;
+            }
+            if (range.start_date && range.end_date) {
+                if (!this.hasStartFromFilter) {
+                    gantt.config.start_date = gantt.calculateEndDate(range.start_date, -1, scaleUnit);
+                }
+                if (!this.hasEndByFilter) {
+                    gantt.config.end_date = gantt.calculateEndDate(range.end_date, 1, scaleUnit);
+                }
+            }
+         });
+
+        gantt.init(this.ganttContainer.nativeElement);
     }
 
     ngAfterViewInit() {
         this.changeDepth(this.view, null);
-        this.refresh();
+        this.fetchData();
+        // this.refresh();
     }
 
     refresh(): void {
+        gantt.init(this.ganttContainer.nativeElement);
+        /*
         gantt.clearAll();
-        let start: string = null;
-        let end: string = null;
-        if (this.hasStartFromFilter) {
-            start = this.startDate.toDateString();
-            gantt.config.start_date = this.startDate;
-        }
-        if (this.hasEndByFilter) {
-            end = this.endDate.toDateString();
-            gantt.config.end_date = this.endDate;
-        }
+        */
+    }
 
+    fetchData(): void {
         this.modalData = { title: 'Loading Gantt Chart Data...' };
         const ref = this._modal.open(this.modalContent, { size: 'sm',
                                                           windowClass: 'transparent-image',
                                                           backdrop: 'static',
                                                           keyboard: false });
-        this._apiService.getGanttItems(start, end).subscribe(ganttTasks => {
+        this._apiService.getGanttItems(null, null).subscribe(ganttTasks => {
             const data = ganttTasks;
             const links = [];
             gantt.parse({data, links});
@@ -121,20 +138,20 @@ export class GanttComponent implements OnInit, AfterViewInit {
         switch (depth) {
             case 'day':
                 gantt.config.step = 1;
-                gantt.config.date_scale = '%M %d %Y';
+                gantt.config.date_scale = '%M %d';
             break;
             case 'week':
                 gantt.config.step = 1;
-                gantt.config.date_scale = '%M %j %Y';
+                gantt.config.date_scale = '%M %d';
             break;
             case 'month':
                 gantt.config.step = 1;
-                gantt.config.date_scale = '%M %Y %Y';
+                gantt.config.date_scale = '%M';
             break;
             default:
                 gantt.config.scale_unit = this.view = 'week';
                 gantt.config.step = 1;
-                gantt.config.date_scale = '%M %j %Y';
+                gantt.config.date_scale = '%M %d %Y';
             break;
         }
         gantt.render();
