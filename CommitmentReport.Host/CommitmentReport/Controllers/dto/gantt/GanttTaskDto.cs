@@ -8,6 +8,8 @@
 
         public string Text { get; set; }
 
+        public string State { get; set; }
+
         public int Progress { get; set; }
 
         public int Duration { get; set; }

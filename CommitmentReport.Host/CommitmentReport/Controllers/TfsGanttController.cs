@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using CommitmentReport.Controllers.dto;
 using CommitmentReport.Controllers.dto.gantt;
@@ -67,6 +68,7 @@ namespace CommitmentReport.Controllers
             var fields = FIELDS;
             var allIds = new List<int>();
             var idDict = new Dictionary<int, int?>();
+            var earliestStartDateDict = new Dictionary<int, DateTime>();
             var reverseIdDict = new Dictionary<int, List<int>>();
             var childNumberDict = new Dictionary<int, int>();
             var progressDict = new Dictionary<int, double>();
@@ -110,6 +112,7 @@ namespace CommitmentReport.Controllers
 
             var ganttTaskDtos = new List<GanttTaskDto>();
             int[] curTaskIds;
+            const string dateFormat = "yyyy-MM-dd";
             do
             {
                 curTaskIds = allIds.Skip(skip).Take(take).ToArray();
@@ -135,21 +138,21 @@ namespace CommitmentReport.Controllers
                     if (taskWorkItem.Fields.ContainsKey("System.CreatedDate"))
                     {
                         startDate = DateTime.Parse(taskWorkItem.Fields["System.CreatedDate"].ToString());
-                        startDateString = startDate.Value.ToString("yyyy-MM-dd");
+                        startDateString = startDate.Value.ToString(dateFormat);
                     }
                     string closedDateString = null;
                     DateTime? closedDate = null;
                     if (taskWorkItem.Fields.ContainsKey("Microsoft.VSTS.Common.ClosedDate"))
                     {
                         closedDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Common.ClosedDate"].ToString());
-                        closedDateString = closedDate.Value.ToString("yyyy-MM-dd");
+                        closedDateString = closedDate.Value.ToString(dateFormat);
                     }
                     DateTime? targetDate = null;
                     string targetDateString = null;
                     if (taskWorkItem.Fields.ContainsKey("Microsoft.VSTS.Scheduling.TargetDate"))
                     {
                         targetDate = DateTime.Parse(taskWorkItem.Fields["Microsoft.VSTS.Scheduling.TargetDate"].ToString());
-                        targetDateString = targetDate.Value.ToString("yyyy-MM-dd");
+                        targetDateString = targetDate.Value.ToString(dateFormat);
                     }
                     string iterationPath = null;
                     if (taskWorkItem.Fields.ContainsKey("System.IterationPath"))
@@ -167,11 +170,11 @@ namespace CommitmentReport.Controllers
                                 {
                                     closedDate = iteration.Attributes.FinishDate;
                                 }
-                                closedDateString = closedDate.Value.ToString("yyyy-MM-dd");
+                                closedDateString = closedDate.Value.ToString(dateFormat);
                             }
 
                             startDate = iteration.Attributes.StartDate;
-                            startDateString = startDate.Value.ToString("yyyy-MM-dd");
+                            startDateString = startDate.Value.ToString(dateFormat);
                         }
                     }
 
@@ -201,10 +204,31 @@ namespace CommitmentReport.Controllers
                         unscheduled = false;
                     }
 
+                    if (workItemType.ToLower().Equals("task") && startDate.HasValue)
+                    {
+                        var parentId = idDict[id];
+                        if (parentId.HasValue)
+                        {
+                            if (!earliestStartDateDict.ContainsKey(parentId.Value))
+                            {
+                                earliestStartDateDict[parentId.Value] = startDate.Value;
+                            }
+                            else
+                            {
+                                var curDate = earliestStartDateDict[parentId.Value];
+                                if (curDate.CompareTo(startDate.Value) > 0)
+                                {
+                                    earliestStartDateDict[parentId.Value] = startDate.Value;
+                                }
+                            }
+                        }
+                    }
+
                     ganttTaskDtos.Add(new GanttTaskDto
                     {
                         Id = id,
                         Text = "#" + id + " " + title,
+                        State = state,
                         StartDate = startDateString,
                         Duration = duration,
                         Unscheduled = unscheduled,
@@ -222,6 +246,17 @@ namespace CommitmentReport.Controllers
                 if (t.Progress > 100)
                 {
                     t.Progress = 100;
+                }
+
+                if (!earliestStartDateDict.ContainsKey(t.Id))
+                {
+                    continue;
+                }
+
+                var curStartDate = DateTime.ParseExact(t.StartDate, dateFormat, CultureInfo.InvariantCulture);
+                if (curStartDate.CompareTo(earliestStartDateDict[t.Id]) > 0)
+                {
+                    t.StartDate = earliestStartDateDict[t.Id].ToString(dateFormat);
                 }
             }
 

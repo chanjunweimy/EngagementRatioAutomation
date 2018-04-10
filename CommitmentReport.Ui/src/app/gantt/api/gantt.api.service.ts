@@ -2,6 +2,7 @@ import { Http } from '@angular/http';
 import { Injectable } from '@angular/core';
 import 'rxjs/add/operator/map';
 import { Observable } from 'rxjs/Observable';
+import { StreamUtils } from 'xlsx/types';
 
 @Injectable()
 export class GanttApiService {
@@ -21,6 +22,12 @@ export class GanttApiService {
         task.duration = ganttTaskDto.duration;
         task.parent = ganttTaskDto.parent;
         task.unscheduled = ganttTaskDto.unscheduled;
+        task.state = ganttTaskDto.state;
+        if (task.state.toLowerCase() === 'done') {
+          task.color = 'grey';
+        } else {
+          task.color = 'blue';
+        }
         ganttTasks.push(task);
       }
       return ganttTasks;
@@ -36,6 +43,7 @@ export class GanttTaskDto {
   duration: number;
   parent: number;
   unscheduled: boolean;
+  state: string;
 }
 
 export class GanttTask {
@@ -46,6 +54,8 @@ export class GanttTask {
   duration: number;
   parent: number;
   unscheduled: boolean;
+  state: string;
+  color: string;
 }
 
 export class GanttLink {

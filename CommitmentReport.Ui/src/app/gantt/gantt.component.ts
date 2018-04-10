@@ -15,7 +15,7 @@ export class GanttComponent implements OnInit, AfterViewInit {
     @ViewChild('modalContent') modalContent: TemplateRef<any>;
 
     view = 'week';
-    grid_columns = ['title', 'progress'];
+    grid_columns = ['title', 'state', 'progress'];
 
     modalData: {
         title: string
@@ -98,6 +98,7 @@ export class GanttComponent implements OnInit, AfterViewInit {
     setUpGridArea() {
         const default_columns = {
             title: {name: 'text',  label: 'Work Item',  width: '*', tree: true },
+            state: {name: 'state', label: 'State', align: 'center', width: 100 },
             start_date: {name: 'start_date', label: 'Start Date', align: 'center', width: 100},
             end_date: {name: 'end_date', label: 'End Date', align: 'center' , width: 100},
             progress: {name: 'progress',   label: '%',   align: 'center', width: 44, template: (task) => {
