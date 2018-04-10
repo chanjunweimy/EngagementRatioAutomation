@@ -81,11 +81,13 @@ export class GanttComponent implements OnInit, AfterViewInit {
         // this.refresh();
     }
 
-    refresh(): void {
+    updateDateRange(): void {
         gantt.init(this.ganttContainer.nativeElement);
-        /*
+    }
+
+    refresh(): void {
         gantt.clearAll();
-        */
+        this.fetchData();
     }
 
     fetchData(): void {

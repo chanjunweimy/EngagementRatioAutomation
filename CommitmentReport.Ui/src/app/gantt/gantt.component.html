@@ -42,8 +42,15 @@
             <calendar-util-date-time-picker *ngIf="hasEndByFilter" name="date-end" [(ngModel)]="endDate" placeholder="End Date">
             </calendar-util-date-time-picker>
         </div>
-        <div class="btn btn-outline-secondary" (click)="refresh()">
-            refresh
+        <div class="btn-group">
+            <div class="btn btn-outline-secondary" (click)="updateDateRange()">
+                Update Date Range
+            </div>
+        </div>
+        <div class="btn-group">
+            <div class="btn btn-outline-secondary" (click)="refresh()">
+                Refresh
+            </div>
         </div>
     </div>
 </div>
