@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, ChangeDetector
 import { GanttTask, GanttLink, GanttApiService } from './api/gantt.api.service';
 
 import 'dhtmlx-gantt';
+import 'dhtmlx-gantt/codebase/ext/dhtmlxgantt_tooltip';
 import {} from '@types/dhtmlxgantt';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
@@ -71,6 +72,11 @@ export class GanttComponent implements OnInit, AfterViewInit {
                 }
             }
          });
+
+        gantt.templates.tooltip_text = (start, end, task) => {
+            return '<b>Task:</b> ' + task.text;
+        };
+        gantt.config.tooltip_hide_timeout = 5000;
 
         gantt.init(this.ganttContainer.nativeElement);
     }
