@@ -48,6 +48,10 @@ export class GanttComponent implements OnInit, AfterViewInit {
         gantt.config.drag_progress = false;
         gantt.config.drag_resize = false;
         gantt.config.columns = this.setUpGridArea();
+
+        gantt.attachEvent('onTaskDblClick', id => {
+            window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + id, '_blank');
+        });
     }
 
     ngAfterViewInit() {

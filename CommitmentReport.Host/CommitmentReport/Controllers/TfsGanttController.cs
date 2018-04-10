@@ -204,7 +204,7 @@ namespace CommitmentReport.Controllers
                     ganttTaskDtos.Add(new GanttTaskDto
                     {
                         Id = id,
-                        Text = title + " #" + id,
+                        Text = "#" + id + " " + title,
                         StartDate = startDateString,
                         Duration = duration,
                         Unscheduled = unscheduled,
