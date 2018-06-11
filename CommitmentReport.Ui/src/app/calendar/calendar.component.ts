@@ -247,6 +247,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
     activeDayIsOpen = true;
 
+    private readonly EXCEL_TASK_HEADER = ['ID', 'Task'];
+
     constructor(private _modal: NgbModal,
                 private _apiService: CalendarApiService,
                 private _changeDetectorRef: ChangeDetectorRef) {}
@@ -693,18 +695,34 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         /* generate workbook and add the worksheet */
         const wb: XLSX.WorkBook = XLSX.utils.book_new();
 
-        let sheets: { [id: string]: any[]} = {};
-        sheets = this.initDailyExcelSheets(collapsedWorkItems, startDate, endDate);
+        let whSheets: { [id: string]: any[]} = {};
+        whSheets = this.initDailyExcelSheets(collapsedWorkItems, startDate, endDate);
+        const taskSheets = this.createTaskSheets(this.convertCollapseWorkItemsToTaskList(collapsedWorkItems));
 
-        for (const employee in sheets) {
-            if (sheets.hasOwnProperty(employee)) {
-                const excelData: AOA = sheets[employee];
+        for (const employee in whSheets) {
+            if (whSheets.hasOwnProperty(employee)) {
+                const excelData: AOA = whSheets[employee];
 
                 /* generate worksheet */
                 const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(excelData);
 
                 let sheetName = employee.replace(/ *<[^)]*> */g, '');
                 sheetName = sheetName.replace(/ /g, '');
+                sheetName = sheetName + '_WH';
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
+        }
+
+        for (const employee in taskSheets) {
+            if (taskSheets.hasOwnProperty(employee)) {
+                const excelData: AOA = taskSheets[employee];
+
+                /* generate worksheet */
+                const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(excelData);
+
+                let sheetName = employee.replace(/ *<[^)]*> */g, '');
+                sheetName = sheetName.replace(/ /g, '');
+                sheetName = sheetName + '_Tasks';
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
             }
         }
@@ -714,6 +732,24 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             this.excelFileName += this.EXCEL_EXT;
         }
         XLSX.writeFile(wb, this.excelFileName);
+    }
+
+    convertCollapseWorkItemsToTaskList(collapseWorkItems: { [id: string]: NtCollapsedWorkItem[]}): {[id: string]: string[]} {
+        const taskLists: {[id: string]: string[]} = {};
+        for (const employee in collapseWorkItems) {
+            if (!collapseWorkItems.hasOwnProperty(employee)) {
+                continue;
+            }
+
+            if (!taskLists.hasOwnProperty(employee)) {
+                taskLists[employee] = [];
+            }
+
+            for (const item of collapseWorkItems[employee]) {
+                taskLists[employee] = taskLists[employee].concat(item.workTasksList);
+            }
+        }
+        return taskLists;
     }
 
     initDailyExcelSheets(collapseWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date):
@@ -916,18 +952,34 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         /* generate workbook and add the worksheet */
         const wb: XLSX.WorkBook = XLSX.utils.book_new();
 
-        let sheets: { [id: string]: any[]} = {};
-        sheets = this.initWeeklyExcelSheets(weeklyWorkItems, startDate, endDate);
+        let whSheets: { [id: string]: any[]} = {};
+        whSheets = this.initWeeklyExcelSheets(weeklyWorkItems, startDate, endDate);
+        const taskSheets = this.createTaskSheets(this.converWeeklyWorkItemsToTaskList(weeklyWorkItems));
 
-        for (const employee in sheets) {
-            if (sheets.hasOwnProperty(employee)) {
-                const excelData: AOA = sheets[employee];
+        for (const employee in whSheets) {
+            if (whSheets.hasOwnProperty(employee)) {
+                const excelData: AOA = whSheets[employee];
 
                 /* generate worksheet */
                 const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(excelData);
 
                 let sheetName = employee.replace(/ *<[^)]*> */g, '');
                 sheetName = sheetName.replace(/ /g, '');
+                sheetName = sheetName + '_WH';
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
+        }
+
+        for (const employee in taskSheets) {
+            if (taskSheets.hasOwnProperty(employee)) {
+                const excelData: AOA = taskSheets[employee];
+
+                /* generate worksheet */
+                const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(excelData);
+
+                let sheetName = employee.replace(/ *<[^)]*> */g, '');
+                sheetName = sheetName.replace(/ /g, '');
+                sheetName = sheetName + '_Tasks';
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
             }
         }
@@ -937,6 +989,24 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             this.excelFileName += this.EXCEL_EXT;
         }
         XLSX.writeFile(wb, this.excelFileName);
+    }
+
+    converWeeklyWorkItemsToTaskList(weeklyWorkItems: { [id: string]: NtWeeklyWorkItem[]}): {[id: string]: string[]} {
+        const taskLists: {[id: string]: string[]} = {};
+        for (const employee in weeklyWorkItems) {
+            if (!weeklyWorkItems.hasOwnProperty(employee)) {
+                continue;
+            }
+
+            if (!taskLists.hasOwnProperty(employee)) {
+                taskLists[employee] = [];
+            }
+
+            for (const item of weeklyWorkItems[employee]) {
+                taskLists[employee] = taskLists[employee].concat(item.workTasksList);
+            }
+        }
+        return taskLists;
     }
 
     initWeeklyExcelSheets(weeklyWorkItems: { [id: string]: NtWeeklyWorkItem[]}, startDate: Date, endDate: Date):
@@ -1200,6 +1270,24 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
                 sheets[employee].push(headerRow);
                 sheets[employee].push(contentRow);
+            }
+        }
+        return sheets;
+    }
+
+    createTaskSheets(taskLists: {[id: string]: string[]}): { [id: string]: any[]}  {
+        const sheets: { [id: string]: any[]} = {};
+        const header1 = this.EXCEL_TASK_HEADER;
+        for (const employee in taskLists) {
+            if (!taskLists.hasOwnProperty(employee)) {
+                continue;
+            }
+            sheets[employee] = [];
+            sheets[employee].push(header1);
+            for (let i = 0; i < taskLists[employee].length; i++) {
+                const id = i + 1;
+                const task = taskLists[employee][i];
+                sheets[employee].push([id, task]);
             }
         }
         return sheets;

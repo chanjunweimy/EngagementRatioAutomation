@@ -86,6 +86,7 @@ export class NtCollapsedWorkItem {
   durationNA: number;
   durationTotal: number;
   product: {[id: string]: number};
+  workTasksList: string[];
 }
 
 export class NtWeeklyWorkItem {
@@ -105,4 +106,5 @@ export class NtWeeklyWorkItem {
   durationNA: number;
   durationTotal: number;
   product: {[id: string]: number};
+  workTasksList: string[];
 }
