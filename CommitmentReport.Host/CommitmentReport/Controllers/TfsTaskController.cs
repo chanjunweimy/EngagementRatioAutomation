@@ -78,6 +78,7 @@ namespace CommitmentReport.Controllers
                 }
 
                 var dateKey = workItem.ClosedDate;
+                var task = $"{workItem.TeamProject}-{workItem.Id} {workItem.Title}";
                 if (!workItemDates[workItem.AssignedTo].ContainsKey(dateKey))
                 {
                     workItemDates[workItem.AssignedTo][dateKey] = collapsedWorkItems[workItem.AssignedTo].Count;
@@ -97,7 +98,8 @@ namespace CommitmentReport.Controllers
                         DurationOthers = 0,
                         DurationNA = 0,
                         DurationTotal = 0,
-                        Product = new Dictionary<string, double>()
+                        Product = new Dictionary<string, double>(),
+                        WorkTasksList = new List<string>(){ task }
                     };
                     collapsedWorkItems[workItem.AssignedTo].Add(collapsedWorkItem);
                 }
@@ -105,6 +107,7 @@ namespace CommitmentReport.Controllers
                 {
                     collapsedWorkItems[workItem.AssignedTo][workItemDates[workItem.AssignedTo][dateKey]].Title +=
                         ", " + workItem.Title;
+                    collapsedWorkItems[workItem.AssignedTo][workItemDates[workItem.AssignedTo][dateKey]].WorkTasksList.Add(task);
                 }
 
                 var itemIndex = workItemDates[workItem.AssignedTo][dateKey];
@@ -219,7 +222,8 @@ namespace CommitmentReport.Controllers
                 var startDate = curDate.StartOfWeek(DayOfWeek.Monday);
                 var endDate = curDate.EndOfWeek(DayOfWeek.Monday);
 
-                var dateKey = startDate.ToString("yyyy MMMM dd"); 
+                var dateKey = startDate.ToString("yyyy MMMM dd");
+                var task = $"{workItem.TeamProject}-{workItem.Id} {workItem.Title}";
                 if (!workItemStartDates[workItem.AssignedTo].ContainsKey(dateKey))
                 {
                     workItemStartDates[workItem.AssignedTo][dateKey] = weeklyWorkItems[workItem.AssignedTo].Count;
@@ -240,7 +244,8 @@ namespace CommitmentReport.Controllers
                         DurationOthers = 0,
                         DurationNA = 0,
                         DurationTotal = 0,
-                        Product = new Dictionary<string, double>()
+                        Product = new Dictionary<string, double>(),
+                        WorkTasksList = new List<string>() { task }
                     };
                     weeklyWorkItems[workItem.AssignedTo].Add(weeklyWorkItem);
                 }
@@ -248,6 +253,7 @@ namespace CommitmentReport.Controllers
                 {
                     weeklyWorkItems[workItem.AssignedTo][workItemStartDates[workItem.AssignedTo][dateKey]].Title +=
                         ", " + workItem.Title;
+                    weeklyWorkItems[workItem.AssignedTo][workItemStartDates[workItem.AssignedTo][dateKey]].WorkTasksList.Add(task);
                 }
 
                 var itemIndex = workItemStartDates[workItem.AssignedTo][dateKey];

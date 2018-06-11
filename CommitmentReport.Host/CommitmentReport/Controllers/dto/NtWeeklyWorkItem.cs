@@ -36,5 +36,7 @@ namespace CommitmentReport.Controllers.dto
         public double DurationTotal { get; set; }
 
         public Dictionary<string, double> Product { get; set; }
+
+        public List<string> WorkTasksList { get; set; }
     }
 }
