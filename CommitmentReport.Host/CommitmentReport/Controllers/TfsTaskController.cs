@@ -450,6 +450,10 @@ namespace CommitmentReport.Controllers
             do
             {
                 curTaskIds = taskIds.Skip(skip).Take(take).ToArray();
+                if (curTaskIds.Length == 0)
+                {
+                    break;
+                }
                 var taskWorkItems = witClient.GetWorkItemsAsync(curTaskIds, fields, workItemQueryResult.AsOf).Result;
 
                 foreach (var taskWorkItem in taskWorkItems)

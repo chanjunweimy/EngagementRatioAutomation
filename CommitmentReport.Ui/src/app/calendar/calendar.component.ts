@@ -126,7 +126,9 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
     EXCEL_EXT = '.xlsx';
 
-    EXCEL_HEADER_1 = ['', '', '', '', '', 'Duration', '', '', '', '', '', '', '', '', '', '', ''];
+    EXCEL_HEADER_EMPTY = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+
+    EXCEL_HEADER_1 = ['', '', '', '', '', 'Duration', '', '', '', '', '', '', '', '', '', ''];
 
     EXCEL_HEADER_2 = ['Employee', 'Date', 'Remark', 'Hours Engaged', 'Title', /*'Demonstration',*/ 'Deployment', 'Design',
                     'Development', 'Documentation', 'Marketing', 'Requirements', 'Testing', 'Others', 'N/A', 'Total', 'Mismatch'];
@@ -755,8 +757,10 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     initDailyExcelSheets(collapseWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date):
                         { [id: string]: any[]} {
         const sheets: { [id: string]: any[]} = {};
-        const header1 = this.EXCEL_HEADER_1;
-        const header2 = this.EXCEL_HEADER_2;
+        let header1 = [];
+        header1 = header1.concat(this.EXCEL_HEADER_1);
+        let header2 = [];
+        header2 = header2.concat(this.EXCEL_HEADER_2);
         const headerDict = this.EXCEL_HEADER_DICT;
 
         for (const employee in collapseWorkItems) {
@@ -764,10 +768,10 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 continue;
             }
             sheets[employee] = [];
-            sheets[employee].push(['']);
-            sheets[employee].push(['']);
-            sheets[employee].push(header1);
-            sheets[employee].push(header2);
+            sheets[employee].push([].concat(this.EXCEL_HEADER_EMPTY));
+            sheets[employee].push([].concat(this.EXCEL_HEADER_EMPTY));
+            sheets[employee].push([].concat(header1));
+            sheets[employee].push([].concat(header2));
 
             const sortedCollapsedItems = collapseWorkItems[employee].sort((a, b) => {
                 return compareAsc(new Date(a.date), new Date(b.date));
@@ -930,6 +934,9 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                         durationNA = 0;
                         monthlyMismatch = 0;
 
+                        console.log(employee);
+                        console.log(durationProduct);
+
                         // product
                         index = sheets[employee].length - 4;
                         for (const productName in durationProduct) {
@@ -944,7 +951,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     start = addDays(start, 1);
                 }
             }
-        }
+            durationProduct = {};
+        } // end of employee loop
         return sheets;
     }
 
