@@ -31,8 +31,7 @@
                     <input class="form-control" type="checkbox"
                     [id]="teamMember.id"
                     [name]="teamMember.uniqueName"
-                    class="hide"                                
-                    (change)="getViewWorkItem()"
+                    class="hide" 
                     [(ngModel)]="isTeamMemberSelected[teamMember.id]"
                     [checked]="isTeamMemberSelected[teamMember.id]">
                     <span>{{teamMember.displayName}} </span>            
@@ -66,6 +65,9 @@
                        (change)="collapse()" 
                        [(ngModel)]="isCollapse" 
                        [checked]="isCollapse"> Collapse
+            </label>
+            <label class="btn btn-primary" (click)="getViewWorkItem()">
+                Reload
             </label>
         </div>
     </div>

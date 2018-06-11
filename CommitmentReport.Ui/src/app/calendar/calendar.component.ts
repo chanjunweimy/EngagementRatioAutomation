@@ -330,12 +330,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         for (const teamMember of this.teamMembers) {
             this.isTeamMemberSelected[teamMember.id] = true;
         }
-        this.getViewWorkItem();
+        // this.getViewWorkItem();
     }
 
     getMine(): void {
         this.setMineSelectedOnly();
-        this.getViewWorkItem();
+        // this.getViewWorkItem();
     }
 
     exportToDailyCsv(): void {
