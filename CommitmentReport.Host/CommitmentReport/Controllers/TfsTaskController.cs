@@ -23,9 +23,9 @@ namespace CommitmentReport.Controllers
     [Route("api/TfsTask")]
     public class TfsTaskController : Controller
     {
-        private static readonly string URL_COLLECTION_NTCLOUD = "http://aws-tfs:8080/tfs/NtCloud";
+        private static readonly string URL_COLLECTION_NTCLOUD = "http://aws-tfs:8080/tfs/DevSg";
         private static readonly string URL_COLLECTION_NTSG = "http://aws-tfs:8080/tfs/NumtechSg";
-        private static readonly string NAME_PROJECT_NTCLOUD = "NtCloud";
+        private static readonly string NAME_PROJECT_NTCLOUD = "DevSg";
         private static readonly string NAME_PROJECT_MISCSG = "MISC Sg";
         private static readonly string[] FIELDS = new string[]
                                                         {
@@ -614,7 +614,7 @@ namespace CommitmentReport.Controllers
             // Create instance of VssConnection using Windows credentials (NTLM)
             var connection = new VssConnection(new Uri(collectionUri), new VssCredentials(new WindowsCredential(true)));
             // Create instance of WorkItemTrackingHttpClient using VssConnection
-            return connection.GetClient<WorkItemTrackingHttpClient>();
+           return connection.GetClient<WorkItemTrackingHttpClient>();
         }
 
         private static WorkHttpClient GetWorkHttpClient(string collectionUri)
