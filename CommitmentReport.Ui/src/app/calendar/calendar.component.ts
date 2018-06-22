@@ -18,7 +18,6 @@ import {
     addHours,
     isLastDayOfMonth,
     compareAsc,
-    differenceInCalendarDays,
     lastDayOfMonth,
     parse,
     startOfWeek,
@@ -754,6 +753,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         return taskLists;
     }
 
+    calculateDateDiff(leftDate: Date, rightDate: Date) {
+        const diffInMs = leftDate.getTime() - rightDate.getTime();
+        const diffInDates = diffInMs / 1000.0 / 60.0 / 60.0 / 24.0;
+        return diffInDates;
+    }
+
     initDailyExcelSheets(collapseWorkItems: { [id: string]: NtCollapsedWorkItem[]}, startDate: Date, endDate: Date):
                         { [id: string]: any[]} {
         const sheets: { [id: string]: any[]} = {};
@@ -778,7 +783,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             });
 
             let start: Date = new Date(sortedCollapsedItems[0].date);
-            if (differenceInCalendarDays(startDate, sortedCollapsedItems[0].date) < 0) {
+
+            if (this.calculateDateDiff(startDate, start) < 0) {
                 start = new Date(startDate);
             }
 
@@ -798,12 +804,12 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 const collapsedWorkItem = sortedCollapsedItems[i];
                 let target = new Date(collapsedWorkItem.date);
 
-                const diff = differenceInCalendarDays(target, start);
+                const diff = this.calculateDateDiff(target, start);
                 if (i === sortedCollapsedItems.length - 1 && !isLastDayOfMonth(target)) {
                     target = lastDayOfMonth(target);
                 }
 
-                const diff2 = differenceInCalendarDays(target, start);
+                const diff2 = this.calculateDateDiff(target, start);
 
                 const person = collapsedWorkItem.employee.replace(/ *<[^)]*> */g, '').trim();
                 for (let j = 0; j <= diff2; j++) {
@@ -1037,8 +1043,29 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             });
 
             let start: Date = new Date(sortedWeeklyItems[0].weekStartDate);
-            if (differenceInCalendarDays(startDate, sortedWeeklyItems[0].weekStartDate) < 0) {
+            if (this.calculateDateDiff(startDate, start) < 0) {
                 start = startOfWeek(startDate, {weekStartsOn: 1});
+            }
+
+            while (this.calculateDateDiff(new Date(sortedWeeklyItems[sortedWeeklyItems.length - 1].weekEndDate), endDate) < 0) {
+                const ntWeeklyItem = new NtWeeklyWorkItem();
+                ntWeeklyItem.employee = sortedWeeklyItems[0].employee;
+                ntWeeklyItem.weekStartDate = addDays(sortedWeeklyItems[sortedWeeklyItems.length - 1].weekStartDate, 7).toDateString();
+                ntWeeklyItem.weekEndDate = addDays(sortedWeeklyItems[sortedWeeklyItems.length - 1].weekEndDate, 7).toDateString();
+                ntWeeklyItem.title = '';
+                ntWeeklyItem.durationDeployment = 0;
+                ntWeeklyItem.durationDesign = 0;
+                ntWeeklyItem.durationDevelopment = 0;
+                ntWeeklyItem.durationDocumentation = 0;
+                ntWeeklyItem.durationMarketing = 0;
+                ntWeeklyItem.durationRequirements = 0;
+                ntWeeklyItem.durationTesting = 0;
+                ntWeeklyItem.durationOthers = 0;
+                ntWeeklyItem.durationNA = 0;
+                ntWeeklyItem.durationTotal = 0;
+                ntWeeklyItem.product = {};
+                ntWeeklyItem.workTasksList = [];
+                sortedWeeklyItems.push(ntWeeklyItem);
             }
 
             const durationMonth: {[id: string]: {
@@ -1058,7 +1085,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 const sortedWeekItem = sortedWeeklyItems[i];
                 const target = new Date(sortedWeekItem.weekStartDate);
 
-                const diff = differenceInCalendarDays(target, start);
+                const diff = this.calculateDateDiff(target, start);
 
                 const person = sortedWeekItem.employee.replace(/ *<[^)]*> */g, '').trim();
                 for (let j = 0; j <= diff; j += 7) {
@@ -1117,7 +1144,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                             while (isSameMonth(day, start)) {
                                 day = addDays(day, 1);
                             }
-                            let weekDiff = differenceInCalendarDays(day, start);
+                            let weekDiff = this.calculateDateDiff(day, start);
                             weekDiff -= curMonthLeave;
                             monthRatio = weekDiff / workingDay;
                             nextMonthRatio = 1 - monthRatio;
