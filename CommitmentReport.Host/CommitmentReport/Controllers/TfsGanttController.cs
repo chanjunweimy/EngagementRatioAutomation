@@ -22,8 +22,8 @@ namespace CommitmentReport.Controllers
     [Route("api/TfsGantt")]
     public class TfsGanttController : Controller
     {
-        private static readonly string URL_COLLECTION_NTCLOUD = "http://aws-tfs:8080/tfs/NtCloud";
-        private static readonly string NAME_PROJECT_NTCLOUD = "NtCloud";
+        private static readonly string URL_COLLECTION_NTCLOUD = "http://aws-tfs:8080/tfs/DevSg";
+        private static readonly string NAME_PROJECT_NTCLOUD = "DevSg";
         private static readonly string[] FIELDS = new string[]
                                                         {
                                                             "System.Id",
@@ -200,7 +200,10 @@ namespace CommitmentReport.Controllers
                     }
                     else if (targetDate.HasValue && startDate.HasValue)
                     {
-                        duration = (targetDate.Value - startDate.Value).Days;
+                        var now = DateTime.Now;
+                        var nowValue = (now - startDate.Value).Days;
+                        var targetValue = (targetDate.Value - startDate.Value).Days;
+                        duration = Math.Max(nowValue, targetValue);
                         unscheduled = false;
                     }
 

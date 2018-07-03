@@ -52,7 +52,7 @@ export class GanttComponent implements OnInit, AfterViewInit {
         ];
 
         gantt.attachEvent('onTaskDblClick', id => {
-            window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + id, '_blank');
+            window.open('http://aws-tfs:8080/tfs/DevSg/DevSg/_workitems?id=' + id, '_blank');
         });
         gantt.attachEvent('onBeforeGanttRender', () => {
             const range = gantt.getSubtaskDates();
@@ -83,7 +83,7 @@ export class GanttComponent implements OnInit, AfterViewInit {
 
     ngAfterViewInit() {
         this.changeDepth(this.view, null);
-        this.fetchData();
+        // this.fetchData();
         // this.refresh();
     }
 
@@ -102,7 +102,15 @@ export class GanttComponent implements OnInit, AfterViewInit {
                                                           windowClass: 'transparent-image',
                                                           backdrop: 'static',
                                                           keyboard: false });
-        this._apiService.getGanttItems(null, null).subscribe(ganttTasks => {
+        let startD:string = null;
+        let endD:string = null;
+        if (this.hasStartFromFilter) {
+            startD = this.startDate.toDateString();
+        }
+        if (this.hasEndByFilter) {
+            endD = this.endDate.toDateString();
+        }
+        this._apiService.getGanttItems(startD, endD).subscribe(ganttTasks => {
             const data = ganttTasks;
             const links = [];
             gantt.parse({data, links});

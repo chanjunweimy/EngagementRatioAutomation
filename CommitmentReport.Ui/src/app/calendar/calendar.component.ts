@@ -302,8 +302,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
     handleEvent(action: string, event: CalendarEvent): void {
         if (!this.isCollapse) {
             const workItem = this.workItemDict[event.title];
-            if (workItem.teamProject.toLowerCase() === 'ntcloud') {
-                window.open('http://aws-tfs:8080/tfs/NtCloud/NtCloud/_workitems?id=' + workItem.id, '_blank');
+            if (workItem.teamProject.toLowerCase() === 'devsg') {
+                window.open('http://aws-tfs:8080/tfs/DevSg/DevSg/_workitems?id=' + workItem.id, '_blank');
             } else if (workItem.teamProject.toLowerCase() === 'misc sg') {
                 window.open('http://aws-tfs:8080/tfs/NumtechSg/MISC%20Sg/_workitems?id=' + workItem.id, '_blank');
             }
