@@ -3,6 +3,24 @@
     <div class="modal-body">{{ modalData?.title }}</div>
 </ng-template>
 
+<div class="row pt-4">
+    <div class="span12 memberCheckBoxes">
+        <form>
+            <label class="checkbox-inline px-2" *ngFor="let teamMember of teamMembers">
+                <div class="form-group">
+                    <input class="form-control" type="checkbox"
+                    [id]="teamMember.id"
+                    [name]="teamMember.uniqueName"
+                    class="hide" 
+                    [(ngModel)]="isTeamMemberSelected[teamMember.id]"
+                    [checked]="isTeamMemberSelected[teamMember.id]">
+                    <span>{{teamMember.displayName}} </span>            
+                </div>
+            </label>
+        </form>
+    </div>    
+</div>
+
 <div class="row text-center m-4">
     <div class="col-md-4">
         <div class="btn-group">

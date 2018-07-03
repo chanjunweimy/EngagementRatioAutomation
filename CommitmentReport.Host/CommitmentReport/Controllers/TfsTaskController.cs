@@ -151,32 +151,48 @@ namespace CommitmentReport.Controllers
                     if (!isMisc)
                     {
                         collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
                     }
-                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
+                    else
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("design"))
                 {
                     if (!isMisc)
                     {
                         collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
                     }
-                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
+                    else
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("development"))
                 {
                     if (!isMisc)
                     {
                         collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
                     }
-                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
+                    else
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("documentation"))
                 {
                     if (!isMisc)
                     {
                         collapsedWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
                     }
-                    collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
+                    else
+                    {
+                        collapsedWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("marketing"))
                 {
@@ -296,32 +312,48 @@ namespace CommitmentReport.Controllers
                     if (!isMisc)
                     {
                         weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
                     }
-                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDeployment += duration;
+                    else
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("design"))
                 {
                     if (!isMisc)
                     {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
                         weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
                     }
-                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDesign += duration;
+                    else
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("development"))
                 {
                     if (!isMisc)
                     {
                         weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
                     }
-                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDevelopment += duration;
+                    else
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("documentation"))
                 {
                     if (!isMisc)
                     {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
                         weeklyWorkItems[workItem.AssignedTo][itemIndex].Product[workItem.Product] += duration;
                     }
-                    weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationDocumentation += duration;
+                    else
+                    {
+                        weeklyWorkItems[workItem.AssignedTo][itemIndex].DurationOthers += duration;
+                    }
                 }
                 else if (workItem.Activity.Equals("marketing"))
                 {

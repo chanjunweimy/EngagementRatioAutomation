@@ -677,7 +677,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 this.teamMembers = ntTeamMembers;
                 this.setMineSelectedOnly();
                 this._changeDetectorRef.detectChanges();
-                this.monthInit();
+                this.view = 'month';
+                this.viewString = this.view;
             }
         });
     }

@@ -53,7 +53,7 @@ namespace CommitmentReport.Controllers
             var witClient = GetWitClient(collectionUri);
             var workHttpClient = GetWorkHttpClient(collectionUri);
             var iterations = workHttpClient.GetTeamIterationsAsync(new TeamContext(teamProjectName)).Result;
-            var workItemQueryResult = GetWorkItemQueryResult(teamProjectName, witClient, iterations, input.Start, input.End, out var workItemLinks);
+            var workItemQueryResult = GetWorkItemQueryResult(teamProjectName, witClient, iterations, input.NtTeamMembers, input.Start, input.End, out var workItemLinks);
             if (!workItemLinks.Any())
             {
                 return new List<GanttTaskDto>();
@@ -266,7 +266,7 @@ namespace CommitmentReport.Controllers
             return ganttTaskDtos;
         }
 
-        private static WorkItemQueryResult GetWorkItemQueryResult(string teamProjectName, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, string start, string end, out WorkItemLink[] workItemLinks)
+        private static WorkItemQueryResult GetWorkItemQueryResult(string teamProjectName, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, List<NtTeamMember> ntTeamMembers, string start, string end, out WorkItemLink[] workItemLinks)
         {
             var query =
                 "Select [System.Id], [System.WorkItemType], [System.Title], [System.AssignedTo], [System.State], [Microsoft.VSTS.Scheduling.TargetDate], [Microsoft.VSTS.Common.ClosedDate], [System.CreatedDate], [Nt.Duration] " +
@@ -298,9 +298,31 @@ namespace CommitmentReport.Controllers
             {
                 query += " And ( Source.[Microsoft.VSTS.Common.ClosedDate] < '" + end + "' Or Source.[Microsoft.VSTS.Scheduling.TargetDate] < '" + end + "' ) ";
             }
-            query += " And Source.[System.WorkItemType] = 'Epic' and (Source.[System.State] = 'Done' or Source.[System.State] = 'In Progress')) " +
-                "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') " +
-                "And (Target.[System.TeamProject] = '" + teamProjectName +
+
+            query +=
+                " And Source.[System.WorkItemType] = 'Epic' and (Source.[System.State] = 'Done' or Source.[System.State] = 'In Progress')) " +
+                "And ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') And ";
+            if (ntTeamMembers != null && ntTeamMembers.Count > 0)
+            {
+                query += " ( ";
+
+                for (var i = 0; i < ntTeamMembers.Count; i++)
+                {
+                    query += " Target.[System.AssignedTo] = '" + ntTeamMembers[i].UniqueName + "' ";
+                    if (i < ntTeamMembers.Count - 1)
+                    {
+                        query += " or ";
+                    }
+                }
+
+                query += " ) And ";
+            }
+            else
+            {
+                query += " Target.[System.AssignedTo] = '' And ";
+            }
+
+            query += " (Target.[System.TeamProject] = '" + teamProjectName +
                 "' And [Target].[System.State] <> 'Removed'  And Target.[System.WorkItemType] <> '') ";
             query += " Order By [System.Id] mode (Recursive) ";
 

@@ -7,5 +7,7 @@ namespace CommitmentReport.Controllers.dto.gantt
         public string Start { get; set; }
 
         public string End { get; set; }
+
+        public List<NtTeamMember> NtTeamMembers { get; set; }
     }
 }

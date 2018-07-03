@@ -1,10 +1,11 @@
 import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef, TemplateRef } from '@angular/core';
-import { GanttTask, GanttLink, GanttApiService } from './api/gantt.api.service';
+import { GanttTask, GanttLink, GanttApiService, NtTeamMember } from './api/gantt.api.service';
 
 import 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/ext/dhtmlxgantt_tooltip';
 import {} from '@types/dhtmlxgantt';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { forkJoin } from 'rxjs/observable/forkJoin';
 
 @Component({
     selector: 'app-gantt',
@@ -28,11 +29,17 @@ export class GanttComponent implements OnInit, AfterViewInit {
     startDate: Date = new Date();
     endDate: Date = new Date();
 
+    teamMembers: NtTeamMember[] = [];
+    isTeamMemberSelected: {[id: string]: boolean } = {};
+    userName = '';
+
     constructor(private _modal: NgbModal,
         private _apiService: GanttApiService,
         private _changeDetectorRef: ChangeDetectorRef) {}
 
     ngOnInit() {
+        this.getNtTeamMembers();
+
         gantt.config.xml_date = '%Y-%m-%d %H:%i';
         gantt.config.show_progress = true;
         gantt.config.show_unscheduled = true;
@@ -96,21 +103,57 @@ export class GanttComponent implements OnInit, AfterViewInit {
         this.fetchData();
     }
 
+    getSelectedNtTeamMembers(): NtTeamMember[] {
+        const ntTeamMembers: NtTeamMember[] = [];
+        for (const teamMember of this.teamMembers) {
+            if (this.isTeamMemberSelected[teamMember.id]) {
+                ntTeamMembers.push(teamMember);
+            }
+        }
+        return ntTeamMembers;
+    }
+
+    getNtTeamMembers(): void {
+        forkJoin(this._apiService.getMyName(), this._apiService.getNtTeamMembers()).subscribe(results => {
+            if (results && results.length === 2) {
+                this.userName = results[0].name;
+                const ntTeamMembers = results[1];
+                if (ntTeamMembers.length === 0) {
+                    return;
+                }
+                this.teamMembers = ntTeamMembers;
+                this.setMineSelectedOnly();
+                this._changeDetectorRef.detectChanges();
+            }
+        });
+    }
+
+    setMineSelectedOnly(): void {
+        for (const ntTeamMember of this.teamMembers) {
+            if (ntTeamMember.uniqueName.toLowerCase() === this.userName.toLowerCase()) {
+                this.isTeamMemberSelected[ntTeamMember.id] = true;
+            } else {
+                this.isTeamMemberSelected[ntTeamMember.id] = false;
+            }
+        }
+    }
+
     fetchData(): void {
         this.modalData = { title: 'Loading Gantt Chart Data...' };
         const ref = this._modal.open(this.modalContent, { size: 'sm',
                                                           windowClass: 'transparent-image',
                                                           backdrop: 'static',
                                                           keyboard: false });
-        let startD:string = null;
-        let endD:string = null;
+        let startD: string = null;
+        let endD: string = null;
         if (this.hasStartFromFilter) {
             startD = this.startDate.toDateString();
         }
         if (this.hasEndByFilter) {
             endD = this.endDate.toDateString();
         }
-        this._apiService.getGanttItems(startD, endD).subscribe(ganttTasks => {
+
+        this._apiService.getGanttItems(startD, endD, this.getSelectedNtTeamMembers()).subscribe(ganttTasks => {
             const data = ganttTasks;
             const links = [];
             gantt.parse({data, links});

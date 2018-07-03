@@ -9,8 +9,8 @@ export class GanttApiService {
 
   constructor(private _http: Http) { }
 
-  getGanttItems(start: string, end: string): Observable<Array<GanttTask>> {
-    return this._http.post('/api/TfsGantt/gantt-items', {start: start, end: end}).map(x => {
+  getGanttItems(start: string, end: string, ntTeamMembers: NtTeamMember[]): Observable<Array<GanttTask>> {
+    return this._http.post('/api/TfsGantt/gantt-items', {start: start, end: end, ntTeamMembers: ntTeamMembers}).map(x => {
       const ganttTaskDtos: Array<GanttTaskDto> = x.json() || [];
       const ganttTasks: Array<GanttTask> = [];
       for (const ganttTaskDto of ganttTaskDtos) {
@@ -31,6 +31,20 @@ export class GanttApiService {
         ganttTasks.push(task);
       }
       return ganttTasks;
+    });
+  }
+
+  getNtTeamMembers(): Observable<Array<NtTeamMember>> {
+    return this._http.get('/api/TfsTask/team', ).map(team => {
+      const ntTeamMembers: Array<NtTeamMember> = team.json() || [];
+      console.log(ntTeamMembers);
+      return ntTeamMembers;
+    });
+  }
+
+  getMyName(): Observable<WindowsUser> {
+    return this._http.get('/api/TfsTask/my-name', ).map(name => {
+      return name.json() || {};
     });
   }
 }
@@ -63,4 +77,14 @@ export class GanttLink {
   source: number;
   target: number;
   type: string;
+}
+
+export class NtTeamMember {
+  id: string;
+  uniqueName: string;
+  displayName: string;
+}
+
+export class WindowsUser {
+  name: string;
 }
