@@ -196,6 +196,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         DATE: 'Date',
         DAY: 'Day',
         IN: 'In',
+        OUT: 'Out',
         REMARKS: 'Remarks',
         WH: 'Hours Worked',
         OT2: 'OT2 (Hrs.)'
@@ -429,6 +430,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 title !== this.JUSTLOGIN_HEADER_DICT.DATE &&
                 title !== this.JUSTLOGIN_HEADER_DICT.DAY &&
                 title !== this.JUSTLOGIN_HEADER_DICT.IN &&
+                title !== this.JUSTLOGIN_HEADER_DICT.OUT &&
                 title !== this.JUSTLOGIN_HEADER_DICT.WH &&
                 title !== this.JUSTLOGIN_HEADER_DICT.REMARKS &&
                 title !== this.JUSTLOGIN_HEADER_DICT.OT2) {
@@ -471,11 +473,16 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             }
 
             let inOffice: string;
+            let inOfficeDate: Date;
+            let outOfficeDate: Date;
             if (data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]].trim() === '-') {
                 inOffice = undefined;
             } else {
-                inOffice = new Date(date + ' '
-                            + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]]).toTimeString();
+                inOfficeDate = new Date(date + ' '
+                    + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.IN]]);
+                outOfficeDate = new Date(date + ' '
+                    + data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.OUT]]);
+                inOffice = inOfficeDate.toTimeString();
             }
             let remarks: string = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.REMARKS]];
 
@@ -489,15 +496,19 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 1;
                 }
             } else if (remarks && (remarks.toLowerCase().includes('annual') || remarks.toLowerCase().includes('sick'))) {
-                const leaveHours = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]] - data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.OT2]];
-                const fulldayHours = 8;
-                const halfdayHours = 4;
+                const actualHours = (outOfficeDate.getTime() - inOfficeDate.getTime() ) / (1000 * 60 * 60);
+                const actualDiff = engagedHour - actualHours + 1;
+
+                console.log(employee);
+                console.log(inOfficeDate.toDateString());
+                console.log(outOfficeDate.toDateString());
+                console.log(actualDiff);
                 let leaveDay = 1;
-                if (leaveHours < fulldayHours - 0.0001) {
-                    engagedHour -= halfdayHours;
+                if (actualDiff < 4.1) {
+                    engagedHour -= 4;
                     leaveDay = 0.5;
                 } else {
-                    engagedHour -= fulldayHours;
+                    engagedHour -= 8;
                 }
                 if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
                     this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += leaveDay;
