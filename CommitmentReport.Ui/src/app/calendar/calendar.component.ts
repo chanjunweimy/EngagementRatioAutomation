@@ -197,7 +197,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         DAY: 'Day',
         IN: 'In',
         REMARKS: 'Remarks',
-        WH: 'Hours Worked'
+        WH: 'Hours Worked',
+        OT2: 'OT2 (Hrs.)'
     };
 
     JUSTLOGIN_NAME_DICT = {
@@ -429,7 +430,8 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 title !== this.JUSTLOGIN_HEADER_DICT.DAY &&
                 title !== this.JUSTLOGIN_HEADER_DICT.IN &&
                 title !== this.JUSTLOGIN_HEADER_DICT.WH &&
-                title !== this.JUSTLOGIN_HEADER_DICT.REMARKS) {
+                title !== this.JUSTLOGIN_HEADER_DICT.REMARKS &&
+                title !== this.JUSTLOGIN_HEADER_DICT.OT2) {
                 continue;
             }
             headerDict[title] = i;
@@ -479,6 +481,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
 
             let engagedHour = +data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]];
             if (!inOffice) {
+                // definitely full day leave
                 engagedHour = 0;
                 if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
                     this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 1;
@@ -486,11 +489,20 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                     this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 1;
                 }
             } else if (remarks && (remarks.toLowerCase().includes('annual') || remarks.toLowerCase().includes('sick'))) {
-                engagedHour -= 4;
+                const leaveHours = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.WH]] - data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.OT2]];
+                const fulldayHours = 8;
+                const halfdayHours = 4;
+                let leaveDay = 1;
+                if (leaveHours < fulldayHours - 0.0001) {
+                    engagedHour -= halfdayHours;
+                    leaveDay = 0.5;
+                } else {
+                    engagedHour -= fulldayHours;
+                }
                 if (isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date)) {
-                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += 0.5;
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].curMonthLeave += leaveDay;
                 } else if ((!isSameMonth(weekStartDate, date) && !isSaturday(date) && !isSunday(date))) {
-                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += 0.5;
+                    this.justLoginLeaveDict[employee][weekStartDate.toDateString()].nextMonthLeave += leaveDay;
                 }
             }
 
@@ -533,6 +545,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             this.justLoginRef.close();
             alert('Upload finished');
         }
+        console.log(this.justLoginDict)
     }
 
     getDay(date: Date, desiredDay: number): Date {
