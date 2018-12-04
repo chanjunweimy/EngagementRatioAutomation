@@ -234,6 +234,9 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                                 nextMonthLeave: number
                                     }}} = {};
 
+    justLoginMonthlyHourDict: {[id: string]:
+        {[id: string]: number }} = {};
+
     justLoginCounter = 0;
 
     justLoginRef: NgbModalRef;
@@ -453,12 +456,13 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             let employee = data[i][headerDict[this.JUSTLOGIN_HEADER_DICT.EMPLOYEE]];
             employee = this.JUSTLOGIN_NAME_DICT[employee];
 
+            let curDate: Date;
             let date: string;
             let weekStartDate: Date = new Date();
             if (tokens.length >= 3) {
-                const cur = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
-                weekStartDate = startOfWeek(cur, {weekStartsOn: 1});
-                date = cur.toDateString();
+                curDate = new Date(+tokens[2], +tokens[1] - 1, +tokens[0]);
+                weekStartDate = startOfWeek(curDate, {weekStartsOn: 1});
+                date = curDate.toDateString();
             }
 
             if (!this.justLoginLeaveDict.hasOwnProperty(employee)) {
@@ -499,10 +503,10 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 const actualHours = (outOfficeDate.getTime() - inOfficeDate.getTime() ) / (1000 * 60 * 60);
                 const actualDiff = engagedHour - actualHours + 1;
 
-                console.log(employee);
-                console.log(inOfficeDate.toDateString());
-                console.log(outOfficeDate.toDateString());
-                console.log(actualDiff);
+                // console.log(employee);
+                // console.log(inOfficeDate.toDateString());
+                // console.log(outOfficeDate.toDateString());
+                // console.log(actualDiff);
                 let leaveDay = 1;
                 if (actualDiff < 4.1) {
                     engagedHour -= 4;
@@ -531,6 +535,20 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 this.justLoginWeekDict[employee] = {};
             }
 
+            if (!this.justLoginMonthlyHourDict.hasOwnProperty(employee)) {
+                this.justLoginMonthlyHourDict[employee] = {};
+            }
+
+            const curMonth = curDate.getMonth() + 1;
+            const yearMonthKey = curDate.getFullYear() + '-' + curMonth;
+            // console.log(curDate.toDateString());
+            // console.log(curMonth);
+            if (!this.justLoginMonthlyHourDict[employee].hasOwnProperty(yearMonthKey)) {
+                this.justLoginMonthlyHourDict[employee][yearMonthKey] = engagedHour;
+            } else {
+                this.justLoginMonthlyHourDict[employee][yearMonthKey] += engagedHour;
+            }
+
             const weekStartDateString = weekStartDate.toDateString();
             if (!remarks) {
                 remarks = '';
@@ -556,7 +574,9 @@ export class CalendarComponent implements AfterViewInit, OnInit {
             this.justLoginRef.close();
             alert('Upload finished');
         }
-        console.log(this.justLoginDict)
+        // console.log(this.justLoginDict);
+        // console.log(this.justLoginMonthlyHourDict);
+        // console.log(this.justLoginLeaveDict);
     }
 
     getDay(date: Date, desiredDay: number): Date {
@@ -1288,8 +1308,17 @@ export class CalendarComponent implements AfterViewInit, OnInit {
                 if (!durationMonth.hasOwnProperty(yearMonthKey)) {
                     continue;
                 }
+                const person = employee.replace(/ *<[^)]*> */g, '').trim();
+                let monthlyHour = 0;
+                if (this.justLoginMonthlyHourDict.hasOwnProperty(person) &&
+                    this.justLoginMonthlyHourDict[person].hasOwnProperty(yearMonthKey)) {
+                    monthlyHour = this.justLoginMonthlyHourDict[person][yearMonthKey];
+                }
+                // console.log(person);
+                // console.log(yearMonthKey);
+                // console.log(this.justLoginMonthlyHourDict);
                 sheets[employee].push(['']);
-                sheets[employee].push([yearMonthKey]);
+                sheets[employee].push([yearMonthKey, '', 'Total Working Hours:', monthlyHour]);
                 sheets[employee].push([]);
                 sheets[employee].push([]);
                 const index = sheets[employee].length - 2;
