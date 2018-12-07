@@ -400,13 +400,20 @@ namespace CommitmentReport.Controllers
             var teamClient = connection.GetClient<TeamHttpClient>();
             var teamMembers = teamClient.GetTeamMembersAsync(project.Id.ToString(), project.DefaultTeam.Id.ToString()).Result;
 
-            return teamMembers.Select(teamMember => new NtTeamMember
+            var ntTeamMembers = teamMembers.Select(teamMember => new NtTeamMember
                 {
                     Id = teamMember.Id,
                     UniqueName = teamMember.UniqueName,
                     DisplayName = teamMember.DisplayName
                 })
                 .ToList();
+            ntTeamMembers.Add(new NtTeamMember
+            {
+                Id = "hbchang",
+                UniqueName = "NUMTECH\\hbchang",
+                DisplayName = "Chang Hai Bin"
+            });
+            return ntTeamMembers;
         }
 
         private static List<NtWorkItem> GetNtWorkItemsInCollection(WorkItemInput input, string collectionUri, string teamProjectName)
