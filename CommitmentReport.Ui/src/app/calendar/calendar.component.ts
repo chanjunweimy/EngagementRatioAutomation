@@ -382,6 +382,7 @@ export class CalendarComponent implements AfterViewInit, OnInit {
         this.justLoginDict = {};
         this.justLoginWeekDict = {};
         this.justLoginLeaveDict = {};
+        this.justLoginMonthlyHourDict = {};
 
         this.justLoginCounter = target.files.length;
         let fileString = 'files';
