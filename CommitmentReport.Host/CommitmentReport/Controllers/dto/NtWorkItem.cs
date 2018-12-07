@@ -28,5 +28,7 @@ namespace CommitmentReport.Controllers.dto
         public string Product { get; set; }
 
         public string TeamProject { get; set; }
+
+        public string ParentTags { get; set; }
     }
 }

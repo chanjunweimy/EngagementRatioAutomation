@@ -23,6 +23,7 @@ namespace CommitmentReport.Controllers
     [Route("api/TfsTask")]
     public class TfsTaskController : Controller
     {
+        private const string NtInsight = "NtInsight";
         private static readonly string URL_COLLECTION_NTCLOUD = "http://aws-tfs:8080/tfs/DevSg";
         private static readonly string URL_COLLECTION_NTSG = "http://aws-tfs:8080/tfs/NumtechSg";
         private static readonly string NAME_PROJECT_NTCLOUD = "DevSg";
@@ -38,7 +39,8 @@ namespace CommitmentReport.Controllers
                                                             "System.IterationPath",
                                                             "Microsoft.VSTS.Common.ClosedDate",
                                                             "System.AreaPath",
-                                                            "Nt.Duration"
+                                                            "Nt.Duration",
+                                                            "System.Tags"
                                                         };
 
         [HttpGet("my-name")]
@@ -287,10 +289,10 @@ namespace CommitmentReport.Controllers
                 }
 
                 var isMisc = workItem.Product.ToUpper().Equals("MISC");
-                if (!isMisc)
+                if (!isMisc && workItem.Product.StartsWith("NtEdge"))
                 {
                     var arr = workItem.Product.Split('.');
-                    workItem.Product = String.Join(".", arr.Take(arr.Length - 1)).Trim();
+                    workItem.Product = string.Join(".", arr.Take(arr.Length - 1)).Trim();
                 }
                 if (!weeklyWorkItems[workItem.AssignedTo][itemIndex].Product.ContainsKey(workItem.Product) && !isMisc)
                 {
@@ -424,12 +426,13 @@ namespace CommitmentReport.Controllers
             return ntWorkItems;
         }
 
-        private static List<NtWorkItem> GetNtWorkItems(WorkItemLink[] workItemLinks, WorkItemTrackingHttpClient witClient,
-            WorkItemQueryResult workItemQueryResult, string teamProjectName, List<TeamSettingsIteration> iterations, DateTime starDate, DateTime endDate)
+        private static List<NtWorkItem> GetNtWorkItems(IEnumerable<WorkItemLink> workItemLinks, WorkItemTrackingHttpClientBase witClient,
+            WorkItemQueryResult workItemQueryResult, string teamProjectName, IReadOnlyCollection<TeamSettingsIteration> iterations, DateTime starDate, DateTime endDate)
         {
             var fields = FIELDS;
             var allIds = new List<int>();
             var epicIds = new List<int>();
+            var miscParentTag = new Dictionary<int, string>();
             var reverseIdDict = new Dictionary<int, bool>();
             var idDict = new Dictionary<int, int?>();
             var categoryDict = new Dictionary<int, string>();
@@ -451,9 +454,18 @@ namespace CommitmentReport.Controllers
                 var id = int.Parse(epicWorkItem.Fields["System.Id"].ToString());
 
                 var title = "MISC";
+                var tags = epicWorkItem.Fields.ContainsKey("System.Tags") ? epicWorkItem.Fields["System.Tags"]?.ToString().Trim() : string.Empty;
                 if (epicWorkItem.Fields["System.WorkItemType"].ToString().ToLower().Equals("epic"))
                 {
                     title = epicWorkItem.Fields["System.Title"].ToString();
+                }
+                else if (!string.IsNullOrEmpty(tags))
+                {
+                    if (tags == NtInsight)
+                    {
+                        title = NtInsight;
+                    }
+                    miscParentTag.Add(id, tags);
                 }
                 categoryDict.Add(id, title);
             }
@@ -472,10 +484,16 @@ namespace CommitmentReport.Controllers
                     refId = idDict[refId].Value;
                 }
                 categoryDict[id] = categoryDict[refId];
+
+                if (!miscParentTag.ContainsKey(refId))
+                {
+                    continue;
+                }
+                miscParentTag[id] = miscParentTag[refId];
             }
 
             var skip = 0;
-            var take = 100;
+            const int take = 100;
 
             var ntWorkItems = new List<NtWorkItem>();
             int[] curTaskIds;
@@ -545,10 +563,9 @@ namespace CommitmentReport.Controllers
                     double? duration = null;
                     if (taskWorkItem.Fields.ContainsKey("Nt.Duration"))
                     {
-                        duration = Double.Parse(taskWorkItem.Fields["Nt.Duration"].ToString());
+                        duration = double.Parse(taskWorkItem.Fields["Nt.Duration"].ToString());
                     }
                     var product = categoryDict[id];
-
                     var ntWorkItem = new NtWorkItem
                     {
                         Id = id,
@@ -562,7 +579,8 @@ namespace CommitmentReport.Controllers
                         AreaPath = areaPath,
                         Duration = duration,
                         Product = product,
-                        TeamProject = teamProjectName
+                        TeamProject = teamProjectName,
+                        ParentTags = miscParentTag.ContainsKey(id) ? miscParentTag[id] : string.Empty
                     };
                     ntWorkItems.Add(ntWorkItem);
                 }
@@ -573,7 +591,7 @@ namespace CommitmentReport.Controllers
         }
 
         private static WorkItemQueryResult GetWorkItemQueryResult(string teamProjectName, DateTime endDate, DateTime startDate,
-            List<NtTeamMember> ntTeamMembers, WorkItemTrackingHttpClient witClient, List<TeamSettingsIteration> iterations, out WorkItemLink[] workItemLinks)
+            IReadOnlyList<NtTeamMember> ntTeamMembers, WorkItemTrackingHttpClientBase witClient, IEnumerable<TeamSettingsIteration> iterations, out WorkItemLink[] workItemLinks)
         {
             var rangeIterations = iterations.Where(i =>
                 i.Attributes.StartDate.HasValue && i.Attributes.FinishDate.HasValue &&
@@ -581,7 +599,7 @@ namespace CommitmentReport.Controllers
                   startDate.CompareTo(i.Attributes.FinishDate) <= 0 && endDate.CompareTo(i.Attributes.FinishDate) >= 0)).ToList();
 
             var query =
-                "Select [System.Id], [System.WorkItemType], [Microsoft.VSTS.Common.Activity], [System.Title], [System.AssignedTo], [System.State], [System.IterationPath], [Microsoft.VSTS.Common.ClosedDate], [System.AreaPath], [Nt.Duration] " +
+                "Select [System.Id], [System.WorkItemType], [Microsoft.VSTS.Common.Activity], [System.Title], [System.AssignedTo], [System.State], [System.IterationPath], [Microsoft.VSTS.Common.ClosedDate], [System.AreaPath], [Nt.Duration], [System.Tags] " +
                 "From WorkItemLinks " +
                 "Where (Source.[System.TeamProject] = '" + teamProjectName +
                 "' and Source.[System.State] <> 'Removed' and Source.[System.WorkItemType] <> 'Task') " +
